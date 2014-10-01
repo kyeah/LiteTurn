@@ -11,6 +11,9 @@ import android.os.Environment;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.WebSocket;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -22,9 +25,12 @@ public class MainActivity extends Activity implements SensorEventListener {
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
+    private Sensor mRotationVector;
 
     private ChartFragment chartFragment;
     private ArrayList<AccelPoint> accelData = new ArrayList<AccelPoint>();
+
+    private WebSocket webSocket;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +40,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mAccelerometer  = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
         registerSensors();
 
@@ -43,6 +50,20 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .add(R.id.container, chartFragment)
                     .commit();
         }
+
+        AsyncHttpClient.getDefaultInstance().websocket(getResources().getString(R.string.debugging_uri),
+                null, new AsyncHttpClient.WebSocketConnectCallback() {
+
+                @Override
+                public void onCompleted(Exception ex, WebSocket webSocket) {
+                    if (ex != null) {
+                        ex.printStackTrace();
+                        return;
+                    }
+
+                    MainActivity.this.webSocket = webSocket;
+                }
+        });
     }
 
     @Override
@@ -107,7 +128,12 @@ public class MainActivity extends Activity implements SensorEventListener {
                 chartFragment.addAccelerometerValue(time - t, x, y, z);
                 break;
             case Sensor.TYPE_GYROSCOPE:
-                //
+                break;
+            case Sensor.TYPE_ROTATION_VECTOR:
+                if (webSocket != null && webSocket.isOpen()) {
+                    webSocket.send(sensorEvent.values[0] + " " + sensorEvent.values[1] + " " +
+                                   sensorEvent.values[2] + " " + sensorEvent.values[3]);
+                }
                 break;
         }
     }
@@ -120,6 +146,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     public void registerSensors() {
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+        mSensorManager.registerListener(this, mRotationVector, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
 

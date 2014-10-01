@@ -6,5 +6,6 @@
     <string name="action_settings">Settings</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="accel_data_filename">accel.txt</string>
+    <string name="debugging_uri">ws://192.168.0.102:8080/echo</string>
 
 </resources>
