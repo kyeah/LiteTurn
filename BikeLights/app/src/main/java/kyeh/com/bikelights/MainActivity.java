@@ -125,14 +125,17 @@ public class MainActivity extends Activity implements SensorEventListener {
             case Sensor.TYPE_ACCELEROMETER:
                 accelData.add(new AccelPoint(time, x, y, z));
                 long t = accelData.get(0).getTimestamp();
-                chartFragment.addAccelerometerValue(time - t, x, y, z);
+                if (chartFragment != null) {
+                    chartFragment.addAccelerometerValue(time - t, x, y, z);
+                }
                 break;
             case Sensor.TYPE_GYROSCOPE:
                 break;
             case Sensor.TYPE_ROTATION_VECTOR:
                 if (webSocket != null && webSocket.isOpen()) {
-                    webSocket.send(sensorEvent.values[0] + " " + sensorEvent.values[1] + " " +
-                                   sensorEvent.values[2] + " " + sensorEvent.values[3]);
+                    webSocket.send(sensorEvent.values[0] + " " +
+                                   sensorEvent.values[1] + " " +
+                                   sensorEvent.values[2]);
                 }
                 break;
         }

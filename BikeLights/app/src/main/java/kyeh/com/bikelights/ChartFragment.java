@@ -9,8 +9,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewGroup.LayoutParams;
-import android.widget.LinearLayout;
+import android.widget.Button;
+import android.widget.RelativeLayout;
 
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
@@ -20,6 +20,9 @@ import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 /**
  * Charts sensory information from the gyroscope and accelerometer.
@@ -27,13 +30,15 @@ import org.achartengine.renderer.XYSeriesRenderer;
  */
 public class ChartFragment extends Fragment {
 
-    LinearLayout rootView;
+    RelativeLayout rootView;
+    private Button toggleButton;
 
     private XYMultipleSeriesDataset mDataset = new XYMultipleSeriesDataset();
     private XYMultipleSeriesRenderer mRenderer  = new XYMultipleSeriesRenderer();
 
     private XYSeries xSeries, ySeries, zSeries;
     private GraphicalView mChartView;
+    private boolean running = true;
 
     public ChartFragment() {
         // Required empty public constructor
@@ -60,7 +65,15 @@ public class ChartFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        rootView = (LinearLayout) inflater.inflate(R.layout.fragment_main, container, false);
+        rootView = (RelativeLayout) inflater.inflate(R.layout.fragment_main, container, false);
+        toggleButton = (Button) rootView.findViewById(R.id.toggle_chart_button);
+        toggleButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Logger.getLogger("ChartFragment").log(Level.INFO, "toggling Chart");
+                running = !running;
+            }
+        });
 
         xSeries = new XYSeries("X");
         ySeries = new XYSeries("Y");
@@ -92,7 +105,14 @@ public class ChartFragment extends Fragment {
         }
 
         mChartView = ChartFactory.getLineChartView(getActivity(), mDataset, mRenderer);
-        rootView.addView(mChartView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT,
+                RelativeLayout.LayoutParams.MATCH_PARENT);
+
+        lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+        lp.addRule(RelativeLayout.ABOVE, R.id.toggle_chart_button);
+        rootView.addView(mChartView, 0, lp);
 
         return rootView;
     }
@@ -101,7 +121,9 @@ public class ChartFragment extends Fragment {
         xSeries.add(time, x);
         ySeries.add(time, y);
         zSeries.add(time, z);
-        redrawChart();
+        if (running) {
+            redrawChart();
+        }
     }
 
     public void redrawChart() {

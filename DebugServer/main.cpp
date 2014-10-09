@@ -28,6 +28,8 @@ float arcmouse_x, arcmouse_y, arcmouse_z;
 bool right_mouse_button = false;
 bool left_mouse_button = false;
 
+bool needsRedisplay = false;
+
 GLfloat rot_matrix[16] = {1, 0, 0, 0,
                           0, 1, 0, 0,
                           0, 0, 1, 0,
@@ -37,6 +39,11 @@ float boxRot[16] = {1, 0, 0, 0,
                     0, 1, 0, 0,
                     0, 0, 1, 0,
                     0, 0, 0, 1};
+
+GLfloat axis_swap[16] = {1, 0, 0, 0,
+                         0, 1, 0, 0,
+                         0, 0, 1, 0,
+                         0, 0, 0, 1};
 
 // lighting
 bool scene_lighting;
@@ -93,10 +100,11 @@ void Display() {
   glLineWidth(4);
   DrawAxis();
   DrawAxisSphere();
+  glMultMatrixf(axis_swap);
   DrawBox();
 
   // Move the origin up
-  glTranslatef(0, -maxDist/8, 0);
+  //glTranslatef(0, -maxDist/8, 0);
   if (scene_lighting)
     SetLighting();
 
@@ -221,7 +229,7 @@ void DrawAxisSphere() {
 void DrawBox() {
   glPushMatrix();
   glMultMatrixf(boxRot);  // rotate
-  //glTranslatef(0, 3, 0);
+  glTranslatef(0, 3, 0);
 
   const float w = 1;
   const float l = 0.25;
@@ -394,13 +402,16 @@ void InitWebSocket() {
     data_ss >> x;
     data_ss >> y;
     data_ss >> z;
-    data_ss >> w;
+
+    w = 1 - x*x - y*y - z*z;
+    w = (w > 0 ? sqrt(w) : 0);
+
     Vec4f v = Vec4f::makeVec(x, y, z, w);
     setRotFromQuat(v);
     cout << "Server: Message received: \"" << data_ss.str() << "\" from " << (size_t)connection.get() << endl;
     cout << "Server: Sending message \"" << data_ss.str() <<  "\" to " << (size_t)connection.get() << endl;
 
-    glutPostRedisplay();
+    needsRedisplay = true;
   };
 
   echo.onopen=[](auto connection) {
@@ -438,19 +449,31 @@ void setRotFromQuat( Vec4f& q ) {
   float xx2 = q[0] * x2;
 
   boxRot[0*4+0] = - yy2 - zz2 + 1.0f;
-  boxRot[0*4+1] = xy2 + wz2;
-  boxRot[0*4+2] = xz2 - wy2;
-  boxRot[0*4+3] = q[4];
+  boxRot[1*4+0] = xy2 + wz2;
+  boxRot[2*4+0] = xz2 - wy2;
+  boxRot[3*4+0] = 0;
 
-  boxRot[1*4+0] = xy2 - wz2;
+  boxRot[0*4+1] = xy2 - wz2;
   boxRot[1*4+1] = - xx2 - zz2 + 1.0f;
-  boxRot[1*4+2] = yz2 + wx2;
-  boxRot[1*4+3] = q[5];
+  boxRot[2*4+1] = yz2 + wx2;
+  boxRot[3*4+1] = 0;
 
-  boxRot[2*4+0] = xz2 + wy2;
-  boxRot[2*4+1] = yz2 - wx2;
+  boxRot[0*4+2] = xz2 + wy2;
+  boxRot[1*4+2] = yz2 - wx2;
   boxRot[2*4+2] = - xx2 - yy2 + 1.0f;
-  boxRot[2*4+3] = q[6];
+  boxRot[3*4+2] = 0;
+
+  boxRot[0*4+3] = 0;
+  boxRot[1*4+3] = 0;
+  boxRot[2*4+3] = 0;
+  boxRot[3*4+3] = 1;
+}
+
+void Idle() {
+  if (needsRedisplay) {
+    needsRedisplay = false;
+    glutPostRedisplay();
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -465,6 +488,7 @@ int main(int argc, char *argv[]) {
   glutMotionFunc(MouseMotion);
   glutKeyboardFunc(Keyboard);
   glutDisplayFunc(Display);
+  glutIdleFunc(Idle);
 
   Init();
   InitWebSocket();
