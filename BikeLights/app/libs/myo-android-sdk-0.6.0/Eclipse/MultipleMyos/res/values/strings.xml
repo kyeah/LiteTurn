@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Multiple Myos</string>
+    <string name="waiting_message">Looking for adjacent Myo</string>
+
+</resources>

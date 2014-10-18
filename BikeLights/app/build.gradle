@@ -23,10 +23,14 @@ repositories {
     maven {
         url "https://repository-achartengine.forge.cloudbees.com/snapshot/"
     }
+    maven {
+        url 'app/libs/myo-android-sdk-0.6.0/myorepository'
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile group: 'org.achartengine', name: 'achartengine', version: '1.2.0'
     compile group: 'com.koushikdutta.async', name: 'androidasync', version: '1.3.8'
+    compile files('./src/main/resources/enterprise.jar')
 }

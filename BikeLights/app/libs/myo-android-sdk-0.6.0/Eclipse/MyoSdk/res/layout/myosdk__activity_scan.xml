@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/myosdk__activity_vertical_margin"
+    android:paddingLeft="@dimen/myosdk__activity_horizontal_margin"
+    android:paddingRight="@dimen/myosdk__activity_horizontal_margin"
+    android:paddingTop="@dimen/myosdk__activity_vertical_margin"
+    tools:context="com.thalmic.myo.scanner.ScanActivity">
+
+    <fragment class="com.thalmic.myo.scanner.ScanFragment"
+        android:id="@+id/myosdk__fragment_scan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:layout="@layout/myosdk__fragment_scan" />
+
+</FrameLayout>

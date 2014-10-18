@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Myo Glass</string>
+    <string name="title_activity_main">Myo Glass Sample</string>
+    <string name="toggle_footnotes">Toggle footnotes</string>
+    <string name="pair">Pair</string>
+    <string name="stop">Stop</string>
+</resources>

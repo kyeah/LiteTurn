@@ -1,0 +1,7 @@
+<resources>
+    <string name="myosdk__title_activity_scan">Choose a Myo</string>
+    <string name="myosdk__action_scan">Scan</string>
+    <string name="myosdk__action_stop_scan">Stop Scan</string>
+    <string name="myosdk__unknown_myo">Unknown Myo</string>
+    <string name="myosdk__firmware_incompatible">Firmware version incompatible.</string>
+</resources>
