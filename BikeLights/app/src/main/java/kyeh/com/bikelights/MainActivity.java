@@ -8,11 +8,13 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
+import com.thalmic.myo.Hub;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -22,12 +24,17 @@ import java.util.ArrayList;
 
 public class MainActivity extends Activity implements SensorEventListener {
 
+    private final String TAG = "MainActivity";
+
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
     private Sensor mRotationVector;
 
+    private MyoDeviceListener myoDeviceListener;
+
     private ChartFragment chartFragment;
+    private SparkLightsFragment sparkLightsFragment;
     private ArrayList<AccelPoint> accelData = new ArrayList<AccelPoint>();
 
     private WebSocket webSocket;
@@ -44,26 +51,49 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         registerSensors();
 
+        Hub hub = Hub.getInstance();
+        if (!hub.init(this)) {
+            Log.e(TAG, "Could not initialize the Hub.");
+            finish();
+            return;
+        }
+
+        /*
+        Intent intent = new Intent(context, ScanActivity.class);
+        context.startActivity(intent);
+        */
+
         if (savedInstanceState == null) {
-            chartFragment = new ChartFragment();
+            /*chartFragment = new ChartFragment();
             getFragmentManager().beginTransaction()
                     .add(R.id.container, chartFragment)
+                    .commit();*/
+
+            sparkLightsFragment = new SparkLightsFragment();
+            getFragmentManager().beginTransaction()
+                    .add(R.id.container, sparkLightsFragment)
                     .commit();
         }
+
+        myoDeviceListener = new MyoDeviceListener(this, sparkLightsFragment);
+
+        // This will connect to the first Myo that is found
+        Hub.getInstance().pairWithAnyMyo();
+        Hub.getInstance().addListener(myoDeviceListener);
 
         AsyncHttpClient.getDefaultInstance().websocket(getResources().getString(R.string.debugging_uri),
                 null, new AsyncHttpClient.WebSocketConnectCallback() {
 
-                @Override
-                public void onCompleted(Exception ex, WebSocket webSocket) {
-                    if (ex != null) {
-                        ex.printStackTrace();
-                        return;
-                    }
+                    @Override
+                    public void onCompleted(Exception ex, WebSocket webSocket) {
+                        if (ex != null) {
+                            ex.printStackTrace();
+                            return;
+                        }
 
-                    MainActivity.this.webSocket = webSocket;
-                }
-        });
+                        MainActivity.this.webSocket = webSocket;
+                    }
+                });
     }
 
     @Override
@@ -82,6 +112,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(this);
+        //Hub.getInstance().removeListener(myoDeviceListener);
         try {
             saveData();
         } catch (Exception e) {}
@@ -91,6 +122,13 @@ public class MainActivity extends Activity implements SensorEventListener {
     protected void onResume() {
         super.onResume();
         registerSensors();
+        if (myoDeviceListener != null) {
+            try {
+                Hub.getInstance().addListener(myoDeviceListener);
+            } catch (Exception e) {
+                Log.d(TAG, "Already listening to Myo.");
+            }
+        }
     }
 
     @Override
