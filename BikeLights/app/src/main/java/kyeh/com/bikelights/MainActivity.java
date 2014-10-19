@@ -76,6 +76,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         myoDeviceListener = new MyoDeviceListener(this, sparkLightsFragment);
+        sparkLightsFragment.setMyoDeviceListener(myoDeviceListener);
 
         // This will connect to the first Myo that is found
         Hub.getInstance().pairWithAnyMyo();

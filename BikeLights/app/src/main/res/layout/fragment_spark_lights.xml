@@ -27,4 +27,11 @@
         android:layout_gravity="center"
         android:text="ARM: Unknown" />
 
+    <Button
+        android:id="@+id/calibrate_yaw_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Calibrate Yaw"/>
+
 </LinearLayout>

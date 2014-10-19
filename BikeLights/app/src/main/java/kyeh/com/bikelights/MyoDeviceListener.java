@@ -40,6 +40,7 @@ public class MyoDeviceListener implements DeviceListener {
 
     int roll_init, pitch_init, yaw_init;
     int roll_w, pitch_w, yaw_w;
+    int yaw_base;
 
     Context mContext;
     SparkLightsFragment sparkLightsFragment;
@@ -59,6 +60,10 @@ public class MyoDeviceListener implements DeviceListener {
         sparkLightsFragment = fragment;
         lastYawChange = lastPitchChange = System.currentTimeMillis();
         roll_init = pitch_init = yaw_init = -1;
+    }
+
+    public void calibrateYaw() {
+        yaw_base = yaw_w;
     }
 
     private void makeRequest(String addUrl, String otherParams) {
@@ -200,7 +205,7 @@ public class MyoDeviceListener implements DeviceListener {
 
         if (checkTurnStatus) {
             if (turnOutPitchMin <= pitch_w && pitch_w <= turnOutPitchMax &&
-                    turnOutYawMin <= yaw_w && yaw_w <= turnOutYawMax) {
+                    turnOutYawMin <= yaw_w - yaw_base && yaw_w - yaw_base <= turnOutYawMax) {
                 // Send Spark Commands
                 if (!turning) {
                     turnRight();
@@ -208,7 +213,7 @@ public class MyoDeviceListener implements DeviceListener {
                     turning = true;
                 }
             } else if (turnInPitchMin <= pitch_w && pitch_w <= turnInPitchMax &&
-                turnInYawMin <= yaw_w && yaw_w <= turnInYawMax) {
+                turnInYawMin <= yaw_w - yaw_base && yaw_w - yaw_base <= turnInYawMax) {
                 if (!turning) {
                     turnLeft();
                     sparkLightsFragment.setSparkText("Turning In");

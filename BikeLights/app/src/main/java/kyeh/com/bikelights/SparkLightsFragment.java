@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 
@@ -16,6 +17,8 @@ import android.widget.TextView;
 public class SparkLightsFragment extends Fragment {
 
     private TextView statusText, sparkText, armText;
+    private Button calibrateYawButton;
+    private MyoDeviceListener mMyoListener;
 
     public SparkLightsFragment() {
         // Required empty public constructor
@@ -30,7 +33,31 @@ public class SparkLightsFragment extends Fragment {
         statusText = (TextView) rootView.findViewById(R.id.text_status);
         sparkText = (TextView) rootView.findViewById(R.id.spark_status);
         armText = (TextView) rootView.findViewById(R.id.arm_status);
+
+        // Calibrate Yaw with arm in yaw=1 position (Arm down by your side)
+        calibrateYawButton = (Button) rootView.findViewById(R.id.calibrate_yaw_button);
+
+        if (mMyoListener != null) {
+            calibrateYawButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    mMyoListener.calibrateYaw();
+                }
+            });
+        }
         return rootView;
+    }
+
+    public void setMyoDeviceListener(MyoDeviceListener listener) {
+        mMyoListener = listener;
+        if (calibrateYawButton != null) {
+            calibrateYawButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    mMyoListener.calibrateYaw();
+                }
+            });
+        }
     }
 
     public void setStatusText(String s) {
