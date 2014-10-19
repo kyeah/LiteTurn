@@ -44,6 +44,25 @@ public class AccelPoint implements Serializable {
     public void setZ(double z) {
         this.z = z;
     }
+    public AccelPoint minus(AccelPoint pt) {
+        this.x -= pt.getX();
+        this.y -= pt.getY();
+        this.z -= pt.getZ();
+        return this;
+    }
+    public AccelPoint plus(AccelPoint pt) {
+        this.x += pt.getX();
+        this.y += pt.getY();
+        this.z += pt.getZ();
+        return this;
+    }
+
+    public AccelPoint div(float d) {
+        this.x /= d;
+        this.y /= d;
+        this.z /= d;
+        return this;
+    }
 
     public String toString()
     {

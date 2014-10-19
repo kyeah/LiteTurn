@@ -6,6 +6,9 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -24,18 +27,23 @@ import java.util.ArrayList;
 
 public class MainActivity extends Activity implements SensorEventListener {
 
+    private static final int accelWindow = 100;
+
     private final String TAG = "MainActivity";
 
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
     private Sensor mRotationVector;
+    private LocationManager mLocationManager;
 
     private MyoDeviceListener myoDeviceListener;
 
     private ChartFragment chartFragment;
     private SparkLightsFragment sparkLightsFragment;
     private ArrayList<AccelPoint> accelData = new ArrayList<AccelPoint>();
+    private AccelPoint lastAvgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
+    private AccelPoint avgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
 
     private WebSocket webSocket;
 
@@ -48,6 +56,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         mAccelerometer  = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         registerSensors();
 
@@ -81,6 +90,74 @@ public class MainActivity extends Activity implements SensorEventListener {
         // This will connect to the first Myo that is found
         Hub.getInstance().pairWithAnyMyo();
         Hub.getInstance().addListener(myoDeviceListener);
+
+        LocationListener locationListener = new LocationListener() {
+
+            private static final int bearingsWindow = 5;  // Keep last 10 bearings
+            private static final float bearingsTolerance = 15;  // 30-degree turn tolerance on each side
+            private int count = 0;
+            private int ucount = 0;
+            ArrayList<Float> lastBearings = new ArrayList<Float>();
+
+            @Override
+            public void onLocationChanged(Location location) {
+                if (location.hasBearing()) {
+                    Float bearing = location.getBearing();
+                    for (int i = 0; i < lastBearings.size() /*/ 2*/; i++) {
+                        float absDiff = Math.abs(lastBearings.get(i) - bearing);
+                        if (absDiff > 180) {
+                            absDiff = 360 - absDiff;
+                        }
+
+                        if (Math.abs(90 - absDiff) < bearingsTolerance) {
+                            if (myoDeviceListener != null) {
+                                myoDeviceListener.turnEnded();
+                                Log.i(TAG, "Detected 90-degreeish turn: " + absDiff);
+                                lastBearings.clear();  // Got our turn; only keep that new bearing
+                                count++;
+                                break;
+                            }
+                        } else if (Math.abs(180 - absDiff) < bearingsTolerance) {
+                            if (myoDeviceListener != null) {
+                                myoDeviceListener.turnEnded();
+                                Log.i(TAG, "Detected U-turn: " + absDiff);
+                                lastBearings.clear();
+                                ucount++;
+                                break;
+                            }
+                        }
+                    }
+
+                    lastBearings.add(bearing);
+                    if (lastBearings.size() > bearingsWindow) {
+                        lastBearings.remove(0);
+                    }
+                    Log.i(TAG, Float.toString(location.getBearing()));
+                    Log.i(TAG, lastBearings.toString());
+                    sparkLightsFragment.setBearingText("FUCK THE ARM! Got Bearing: " + bearing + " with total turns: " + count + ", u-turns: " + ucount + " and history " + lastBearings.toString());
+                }
+            }
+
+            @Override
+            public void onStatusChanged(String s, int i, Bundle bundle) {
+
+            }
+
+            @Override
+            public void onProviderEnabled(String s) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String s) {
+
+            }
+        };
+
+        // Request updates with GPS accuracy at a 1s update rate and 10m position change
+        // Typical city blocks are about 100m long, for reference.
+        // Need to check the units of these arguments.
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 25, 10f, locationListener);
 
         AsyncHttpClient.getDefaultInstance().websocket(getResources().getString(R.string.debugging_uri),
                 null, new AsyncHttpClient.WebSocketConnectCallback() {
@@ -171,6 +248,22 @@ public class MainActivity extends Activity implements SensorEventListener {
         switch (sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
                 accelData.add(new AccelPoint(time, x, y, z));
+/*                avgAccel.plus(new AccelPoint(time, x, y, z));
+                if (accelData.size() > 2*accelWindow) {
+                    AccelPoint val = accelData.remove(0);
+                    AccelPoint val2 = accelData.get(accelWindow -1);
+                    lastAvgAccel.minus(val.div(accelWindow));
+                    lastAvgAccel.plus(val2.div(accelWindow));
+                    avgAccel.minus(val2.div(accelWindow));
+                }
+
+                double turnTolerance = 0.01;
+                double dot = lastAvgAccel.getX()*avgAccel.getX() + lastAvgAccel.getY()*avgAccel.getY();// + lastAvgAccel.getZ()*avgAccel.getZ();
+                Log.i(TAG, Double.toString(dot));
+                if (dot < turnTolerance) {
+                    myoDeviceListener.turnEnded();
+                }
+*/
                 long t = accelData.get(0).getTimestamp();
                 if (chartFragment != null) {
                     chartFragment.addAccelerometerValue(time - t, x, y, z);

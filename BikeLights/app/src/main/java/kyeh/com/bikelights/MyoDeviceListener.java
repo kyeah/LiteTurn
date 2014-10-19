@@ -21,6 +21,10 @@ public class MyoDeviceListener implements DeviceListener {
     private final String TAG = "MyoDeviceListener";
     private static final long HOLD_DURATION = 300;
 
+    private static final int TURN_OFF = 0;
+    private static final int TURN_LEFT = 1;
+    private static final int TURN_RIGHT = 2;
+
     private static final int turnOutPitchMin = 1;//7;
     private static final int turnOutPitchMax = 9;//16;
     private static final int turnOutYawMin = 1;
@@ -31,7 +35,10 @@ public class MyoDeviceListener implements DeviceListener {
     private static final int turnInYawMax = 9;
 
     private long lastYawChange, lastPitchChange;
-    private boolean turning = false;
+    private int turning = TURN_OFF;
+
+    private int r, g, b;
+    private long lastColorChange;
 
     private boolean mLaunching;
     private Handler mHandler = new Handler();
@@ -47,6 +54,15 @@ public class MyoDeviceListener implements DeviceListener {
 
     Arm mArm;
 
+    private Runnable colorChangeRunnable = new Runnable() {
+
+        @Override
+        public void run() {
+            makeRequest("setColor", String.format("%03d %03d %03d", r, g, b));
+            lastColorChange = System.currentTimeMillis();
+        }
+    };
+
     private Runnable mLaunchRunnable = new Runnable() {
         @Override
         public void run() {
@@ -60,27 +76,23 @@ public class MyoDeviceListener implements DeviceListener {
         sparkLightsFragment = fragment;
         lastYawChange = lastPitchChange = System.currentTimeMillis();
         roll_init = pitch_init = yaw_init = -1;
+        r = 255;
+        g = b = 0;
     }
 
     public void calibrateYaw() {
         yaw_base = yaw_w;
-    }
+    }  // TODO: Check Calibration accuracy...
 
     private void makeRequest(String addUrl, String otherParams) {
         new SparkAsyncTask().execute(addUrl, otherParams);
     }
 
-    private void turnRight() {
-        makeRequest("on", "RIGHT");
-    }
+    public void turnRight() { makeRequest("on", "RIGHT"); turning = TURN_RIGHT; }
 
-    private void turnLeft() {
-        makeRequest("on", "LEFT");
-    }
+    public void turnLeft() { makeRequest("on", "LEFT"); turning = TURN_LEFT; }
 
-    private void turnOff() {
-        makeRequest("off", "");
-    }
+    public void turnOff() { makeRequest("off", ""); turning = TURN_OFF; }
 
     @Override
     public void onPair(Myo myo, long l) {
@@ -122,6 +134,10 @@ public class MyoDeviceListener implements DeviceListener {
 
     @Override
     public void onPose(Myo myo, long l, Pose pose) {
+
+        if (pose == Pose.FIST) {
+            
+        }
 
        // if (pose == Pose.FIST || pose == Pose.FINGERS_SPREAD) {
         //    if (xThreshMin < orientation.x() && orientation.x() < xThreshMax /*&&
@@ -207,39 +223,38 @@ public class MyoDeviceListener implements DeviceListener {
             if (turnOutPitchMin <= pitch_w && pitch_w <= turnOutPitchMax &&
                     turnOutYawMin <= yaw_w - yaw_base && yaw_w - yaw_base <= turnOutYawMax) {
                 // Send Spark Commands
-                if (!turning) {
+                if (turning != TURN_RIGHT) {
                     turnRight();
                     sparkLightsFragment.setSparkText("Turning Out");
-                    turning = true;
                 }
             } else if (turnInPitchMin <= pitch_w && pitch_w <= turnInPitchMax &&
                 turnInYawMin <= yaw_w - yaw_base && yaw_w - yaw_base <= turnInYawMax) {
-                if (!turning) {
+                if (turning != TURN_LEFT) {
                     turnLeft();
                     sparkLightsFragment.setSparkText("Turning In");
-                    turning = true;
                 }
             } else {
                 sparkLightsFragment.setSparkText("Not Turning");
-                if (turning) {
+                /*if (turning != TURN_OFF) {
                     turnOff();
-                }
-                turning = false;
+                }*/
             }
         } else {
-            if (turning) {
+            if (turning != TURN_OFF) {
                 sparkLightsFragment.setSparkText("Not Turning");
                 turnOff();
+                turning = TURN_OFF;
             }
         }
 
-        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w);
+        //Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w);
     }
 
     @Override
     public void onAccelerometerData(Myo myo, long l, Vector3 vector3) {
         //Toast.makeText(mContext, "Myo Accelerometer: " + vector3, Toast.LENGTH_SHORT).show();
         //sparkLightsFragment.setStatusText("Myo Accel: " + vector3);
+        Log.i(TAG, vector3.toString());
     }
 
     @Override
@@ -252,5 +267,27 @@ public class MyoDeviceListener implements DeviceListener {
     public void onRssi(Myo myo, long l, int i) {
         Toast.makeText(mContext, "Myo Rssi Detected", Toast.LENGTH_SHORT).show();
         sparkLightsFragment.setStatusText("Myo Rssi Detected!");
+    }
+
+    public void turnEnded() {
+        if (turning != TURN_OFF) {
+            Log.d(TAG, "Turning Ended");
+            turnOff();
+            turning = TURN_OFF;
+        }
+    }
+
+    public void setColor(int _r, int _g, int _b) {
+        r = _r % 255;
+        g = _g % 255;
+        b = _b % 255;
+
+        long colorChangeWait = 1000;
+        if (System.currentTimeMillis() - lastColorChange > colorChangeWait) {
+            mHandler.post(colorChangeRunnable);
+        } else {
+            mHandler.removeCallbacks(colorChangeRunnable);
+            mHandler.postDelayed(colorChangeRunnable, colorChangeWait);
+        }
     }
 }

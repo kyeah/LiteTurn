@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">BikeLights</string>
+    <string name="app_name">Liteturn</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="accel_data_filename">accel.txt</string>
     <string name="debugging_uri">ws://192.168.0.102:8080/echo</string>
     <string name="toggle_chart">Toggle Chart</string>
+
+    <color name="theme_color_dark">#ff3d86ae</color>
+    <color name="theme_color_darker">#ff1b649c</color>
+
+    <string name="title_activity_splash">SplashActivity</string>
 
 </resources>

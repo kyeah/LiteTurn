@@ -2,36 +2,126 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:orientation="horizontal"
+    android:gravity="center|top"
+    android:background="#EEEEEE"
     tools:context="kyeh.com.bikelights.SparkLightsFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:id="@+id/text_status"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginTop="10dp"
         android:layout_gravity="center"
-        android:text="@string/hello_blank_fragment" />
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/spark_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/hello_blank_fragment" />
+        <TextView
+            android:id="@+id/text_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Myo Pose Status: None"
+            android:textSize="18sp"
+            style="@style/headerText"/>
 
-    <TextView
-        android:id="@+id/arm_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="ARM: Unknown" />
+        <TextView
+            android:id="@+id/spark_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Not Turning"
+            android:textSize="18sp"
+            style="@style/headerText"/>
 
-    <Button
-        android:id="@+id/calibrate_yaw_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="Calibrate Yaw"/>
+        <TextView
+            android:id="@+id/arm_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="ARM: Unknown"
+            android:textSize="12sp"
+            style="@style/headerText" />
 
+        <TextView
+            android:id="@+id/bearing_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Bearing Status: Unknown"
+            android:textSize="12sp"
+            style="@style/headerText" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            xmlns:auto="http://schemas.android.com/apk/res-auto"
+            >
+
+            <com.larswerkman.holocolorpicker.ColorPicker
+                android:id="@+id/picker"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                auto:color_wheel_radius="110dp"
+                />
+
+            <com.larswerkman.holocolorpicker.SaturationBar
+                android:id="@+id/svbar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                auto:bar_orientation_horizontal="false" />
+
+            </LinearLayout>
+
+        <Button
+            android:id="@+id/calibrate_yaw_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:background="@drawable/button_theme"
+            android:text="Calibrate Yaw"
+            android:textColor="#FFFFFF"
+            style="@style/shadowText"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp">
+
+            <Button
+                android:id="@+id/turn_left_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_theme"
+                android:text="Left"
+                android:textColor="#FFFFFF"
+                style="@style/shadowText"/>
+
+        <Button
+            android:id="@+id/off_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/button_theme"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:text="Off"
+            android:textColor="#FFFFFF"
+            style="@style/shadowText"/>
+
+            <Button
+                android:id="@+id/turn_right_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_theme"
+                android:text="Right"
+                android:textColor="#FFFFFF"
+                style="@style/shadowText"/>
+
+        </LinearLayout>
+        </LinearLayout>
 </LinearLayout>
