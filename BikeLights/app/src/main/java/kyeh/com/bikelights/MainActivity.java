@@ -109,6 +109,14 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
 
     @Override
+    protected void onDestroy() {
+        mSensorManager.unregisterListener(this);
+        Hub.getInstance().removeListener(myoDeviceListener);
+        Hub.getInstance().shutdown();
+        super.onDestroy();
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(this);

@@ -13,29 +13,33 @@ import com.thalmic.myo.Quaternion;
 import com.thalmic.myo.Vector3;
 import com.thalmic.myo.XDirection;
 
-import javax.net.ssl.HttpsURLConnection;
-import java.net.URL;
-
 /**
  * Created by kyeh on 10/18/14.
  */
 public class MyoDeviceListener implements DeviceListener {
 
     private final String TAG = "MyoDeviceListener";
-    private static final long LAUNCH_HOLD_DURATION = 500;
+    private static final long HOLD_DURATION = 300;
 
+    private static final int turnOutPitchMin = 1;//7;
+    private static final int turnOutPitchMax = 9;//16;
+    private static final int turnOutYawMin = 1;
+    private static final int turnOutYawMax = 4;
+    private static final int turnInPitchMin = 10;//1;
+    private static final int turnInPitchMax = 15;//6;
+    private static final int turnInYawMin = 4;
+    private static final int turnInYawMax = 9;
 
-    private static final double xThreshMin = 0.15;
-    private static final double xThreshMax = 0.7;
-    private static final double yThreshMin = 0.3;
-    private static final double yThreshMax = 0.95;
-    private static final double zThreshMin = -0.65;
-    private static final double zThreshMax = -0.765;
+    private long lastYawChange, lastPitchChange;
+    private boolean turning = false;
 
     private boolean mLaunching;
     private Handler mHandler = new Handler();
 
     private Quaternion orientation;
+
+    int roll_init, pitch_init, yaw_init;
+    int roll_w, pitch_w, yaw_w;
 
     Context mContext;
     SparkLightsFragment sparkLightsFragment;
@@ -53,33 +57,12 @@ public class MyoDeviceListener implements DeviceListener {
     public MyoDeviceListener(Context context, SparkLightsFragment fragment) {
         mContext = context;
         sparkLightsFragment = fragment;
+        lastYawChange = lastPitchChange = System.currentTimeMillis();
+        roll_init = pitch_init = yaw_init = -1;
     }
 
     private void makeRequest(String addUrl, String otherParams) {
-        String baseUrl = "https://api.spark.io/v1/devices/" + CORE_ID + "/" + addUrl;
-        try {
-            URL url = new URL(baseUrl);
-            HttpsURLConnection connect = (HttpsURLConnection) url.openConnection();
-            connect.setRequestMethod("POST");
-            connect.setDoOutput(true);
-            connect.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            String params = "&access_token=" + ACCESS_TOKEN;
-
-            if(!(otherParams == null || otherParams == "")) {
-                params = params + "&params=" + otherParams;
-            }
-
-            DataOutputStream wr = new DataOutputStream(connect.getOutputStream());
-            wr.writeBytes(params);
-            wr.flush();
-            wr.close();
-            int responseCode = connect.getResponseCode();
-            System.out.println(responseCode);
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-
-
+        new SparkAsyncTask().execute(addUrl, otherParams);
     }
 
     private void turnRight() {
@@ -134,15 +117,16 @@ public class MyoDeviceListener implements DeviceListener {
 
     @Override
     public void onPose(Myo myo, long l, Pose pose) {
+
        // if (pose == Pose.FIST || pose == Pose.FINGERS_SPREAD) {
-            if (xThreshMin < orientation.x() && orientation.x() < xThreshMax /*&&
-                    yThreshMin < orientation.y() && orientation.y() < yThreshMax &&
-                    zThreshMin < orientation.z() && orientation.z() < zThreshMax*/) {
+        //    if (xThreshMin < orientation.x() && orientation.x() < xThreshMax /*&&
+        //            yThreshMin < orientation.y() && orientation.y() < yThreshMax &&
+        //            zThreshMin < orientation.z() && orientation.z() < zThreshMax*/) {
                 // Send Spark Commands
-                sparkLightsFragment.setSparkText("Activated");
-            } else {
-                sparkLightsFragment.setSparkText("Not Activated");
-            }
+        //        sparkLightsFragment.setSparkText("Activated");
+        //    } else {
+        //        sparkLightsFragment.setSparkText("Not Activated");
+        //    }
         //} else {
         //    sparkLightsFragment.setSparkText("Not Activated");
         //}
@@ -179,16 +163,72 @@ public class MyoDeviceListener implements DeviceListener {
     public void onOrientationData(Myo myo, long l, Quaternion quaternion) {
         //Toast.makeText(mContext, "Myo Orientation: " + quaternion, Toast.LENGTH_SHORT).show();
         //sparkLightsFragment.setStatusText("Myo Orientation: " + quaternion);
-        Log.i(TAG, "Myo Quaternion: " + quaternion);
+        //Log.i(TAG, "Myo Quaternion: " + quaternion);
         orientation = quaternion;
-        if (/*xThreshMin < orientation.x() && orientation.x() < xThreshMax &&
-                    /*yThreshMin < orientation.y() && orientation.y() < yThreshMax &&*/
-                    zThreshMin < orientation.z() && orientation.z() < zThreshMax) {
-            // Send Spark Commands
-            sparkLightsFragment.setSparkText("Activated");
-        } else {
-            sparkLightsFragment.setSparkText("Not Activated");
+        // Calculate Euler angles (roll, pitch, and yaw) from the unit quaternion.
+        double roll = Math.atan2(2.0f * (quaternion.w() * quaternion.x() + quaternion.y() * quaternion.z()),
+                1.0f - 2.0f * (quaternion.x() * quaternion.x() + quaternion.y() * quaternion.y()));
+        double pitch = Math.asin(Math.max(-1.0f, Math.min(1.0f, 2.0f * (quaternion.w() * quaternion.y() - quaternion.z() * quaternion.x()))));
+        double yaw = Math.atan2(2.0f * (quaternion.w() * quaternion.z() + quaternion.x() * quaternion.y()),
+                1.0f - 2.0f * (quaternion.y() * quaternion.y() + quaternion.z() * quaternion.z()));
+        // Convert the floating point angles in radians to a scale from 0 to 18.
+        int roll_w_2 = (int)((roll + (float)Math.PI)/(Math.PI * 2.0f) * 18);
+        int pitch_w_2 = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 18);
+        int yaw_w_2 = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 18);
+
+        long time = System.currentTimeMillis();
+
+        if (pitch_init == -1) {
+            pitch_init = pitch_w_2;
+            yaw_init = yaw_w_2;
+            roll_init = roll_w_2;
         }
+
+        if (pitch_w != pitch_w_2) {
+            lastPitchChange = time;
+        }
+        if (yaw_w != yaw_w_2) {
+            lastYawChange = time;
+        }
+
+        roll_w = roll_w_2;
+        pitch_w = pitch_w_2;
+        yaw_w = yaw_w_2;
+
+        //boolean checkTurnStatus = (time - lastPitchChange >= HOLD_DURATION) && (time - lastYawChange >= HOLD_DURATION);
+        boolean checkTurnStatus = true;
+
+        if (checkTurnStatus) {
+            if (turnOutPitchMin <= pitch_w && pitch_w <= turnOutPitchMax &&
+                    turnOutYawMin <= yaw_w && yaw_w <= turnOutYawMax) {
+                // Send Spark Commands
+                if (!turning) {
+                    turnRight();
+                    sparkLightsFragment.setSparkText("Turning Out");
+                    turning = true;
+                }
+            } else if (turnInPitchMin <= pitch_w && pitch_w <= turnInPitchMax &&
+                turnInYawMin <= yaw_w && yaw_w <= turnInYawMax) {
+                if (!turning) {
+                    turnLeft();
+                    sparkLightsFragment.setSparkText("Turning In");
+                    turning = true;
+                }
+            } else {
+                sparkLightsFragment.setSparkText("Not Turning");
+                if (turning) {
+                    turnOff();
+                }
+                turning = false;
+            }
+        } else {
+            if (turning) {
+                sparkLightsFragment.setSparkText("Not Turning");
+                turnOff();
+            }
+        }
+
+        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w);
     }
 
     @Override
