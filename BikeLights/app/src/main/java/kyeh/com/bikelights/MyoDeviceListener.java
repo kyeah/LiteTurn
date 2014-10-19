@@ -13,6 +13,9 @@ import com.thalmic.myo.Quaternion;
 import com.thalmic.myo.Vector3;
 import com.thalmic.myo.XDirection;
 
+import javax.net.ssl.HttpsURLConnection;
+import java.net.URL;
+
 /**
  * Created by kyeh on 10/18/14.
  */
@@ -50,6 +53,45 @@ public class MyoDeviceListener implements DeviceListener {
     public MyoDeviceListener(Context context, SparkLightsFragment fragment) {
         mContext = context;
         sparkLightsFragment = fragment;
+    }
+
+    private void makeRequest(String addUrl, String otherParams) {
+        String baseUrl = "https://api.spark.io/v1/devices/" + CORE_ID + "/" + addUrl;
+        try {
+            URL url = new URL(baseUrl);
+            HttpsURLConnection connect = (HttpsURLConnection) url.openConnection();
+            connect.setRequestMethod("POST");
+            connect.setDoOutput(true);
+            connect.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            String params = "&access_token=" + ACCESS_TOKEN;
+
+            if(!(otherParams == null || otherParams == "")) {
+                params = params + "&params=" + otherParams;
+            }
+
+            DataOutputStream wr = new DataOutputStream(connect.getOutputStream());
+            wr.writeBytes(params);
+            wr.flush();
+            wr.close();
+            int responseCode = connect.getResponseCode();
+            System.out.println(responseCode);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+    }
+
+    private void turnRight() {
+        makeRequest("on", "RIGHT");
+    }
+
+    private void turnLeft() {
+        makeRequest("on", "LEFT");
+    }
+
+    private void turnOff() {
+        makeRequest("off", "");
     }
 
     @Override
