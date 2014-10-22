@@ -1,5 +1,6 @@
 package kyeh.com.bikelights;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -13,7 +14,17 @@ import javax.net.ssl.HttpsURLConnection;
  */
 public class SparkAsyncTask extends AsyncTask<String, Integer, Integer> {
 
+    private static String ACCESS_TOKEN;
+    private static String CORE_ID;
     private static final String TAG = "SparkAsyncTask";
+
+    SparkAsyncTask(Context context) {
+        super();
+        if (ACCESS_TOKEN == null) {
+            ACCESS_TOKEN = context.getResources().getString(R.string.core_access_token);
+            CORE_ID = context.getResources().getString(R.string.core_id);
+        }
+    }
 
     @Override
     protected Integer doInBackground(String... strings) {

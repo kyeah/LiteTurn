@@ -85,7 +85,7 @@ public class MyoDeviceListener implements DeviceListener {
     }  // TODO: Check Calibration accuracy...
 
     private void makeRequest(String addUrl, String otherParams) {
-        new SparkAsyncTask().execute(addUrl, otherParams);
+        new SparkAsyncTask(mContext).execute(addUrl, otherParams);
     }
 
     public void turnRight() { makeRequest("on", "RIGHT"); turning = TURN_RIGHT; }
