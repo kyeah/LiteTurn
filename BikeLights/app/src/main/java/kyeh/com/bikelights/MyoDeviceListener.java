@@ -25,6 +25,17 @@ public class MyoDeviceListener implements DeviceListener {
     private static final int TURN_LEFT = 1;
     private static final int TURN_RIGHT = 2;
 
+    // Bearings (Body Rotation)
+    private static final int turnPitchWindow = 2;  // Within two divs away from desired pitch value
+    // To calculate valid yaw for right turn:
+    // (Bearing + 15) % 20 = (yaw +- turnWindow) % 20
+
+    // Elevation
+    // roll
+
+    // Arm Rotation in forward/back direction ()
+
+
     private static final int turnOutPitchMin = 1;//7;
     private static final int turnOutPitchMax = 9;//16;
     private static final int turnOutYawMin = 1;
@@ -45,6 +56,7 @@ public class MyoDeviceListener implements DeviceListener {
 
     private Quaternion orientation;
 
+    int bearing_w;
     int roll_init, pitch_init, yaw_init;
     int roll_w, pitch_w, yaw_w;
     int yaw_base;
@@ -186,16 +198,25 @@ public class MyoDeviceListener implements DeviceListener {
         //sparkLightsFragment.setStatusText("Myo Orientation: " + quaternion);
         //Log.i(TAG, "Myo Quaternion: " + quaternion);
         orientation = quaternion;
-        // Calculate Euler angles (roll, pitch, and yaw) from the unit quaternion.
-        double roll = Math.atan2(2.0f * (quaternion.w() * quaternion.x() + quaternion.y() * quaternion.z()),
-                1.0f - 2.0f * (quaternion.x() * quaternion.x() + quaternion.y() * quaternion.y()));
-        double pitch = Math.asin(Math.max(-1.0f, Math.min(1.0f, 2.0f * (quaternion.w() * quaternion.y() - quaternion.z() * quaternion.x()))));
-        double yaw = Math.atan2(2.0f * (quaternion.w() * quaternion.z() + quaternion.x() * quaternion.y()),
-                1.0f - 2.0f * (quaternion.y() * quaternion.y() + quaternion.z() * quaternion.z()));
-        // Convert the floating point angles in radians to a scale from 0 to 18.
-        int roll_w_2 = (int)((roll + (float)Math.PI)/(Math.PI * 2.0f) * 18);
-        int pitch_w_2 = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 18);
-        int yaw_w_2 = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 18);
+
+        // If myo == null, getting sensor data from android accelerometer and magnetoscope
+        double yaw = orientation.x();
+        double pitch = orientation.y();
+        double roll = orientation.z();
+
+        if (myo != null) {
+            // Calculate Euler angles (roll, pitch, and yaw) from the unit quaternion.
+            roll = Math.atan2(2.0f * (quaternion.w() * quaternion.x() + quaternion.y() * quaternion.z()),
+                    1.0f - 2.0f * (quaternion.x() * quaternion.x() + quaternion.y() * quaternion.y()));
+            pitch = Math.asin(Math.max(-1.0f, Math.min(1.0f, 2.0f * (quaternion.w() * quaternion.y() - quaternion.z() * quaternion.x()))));
+            yaw = Math.atan2(2.0f * (quaternion.w() * quaternion.z() + quaternion.x() * quaternion.y()),
+                    1.0f - 2.0f * (quaternion.y() * quaternion.y() + quaternion.z() * quaternion.z()));
+        }
+
+        // Convert the floating point angles in radians to a scale from 0 to 20.
+        int roll_w_2 = (int)((roll + (float)Math.PI)/(Math.PI * 2.0f) * 20);
+        int pitch_w_2 = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 20);
+        int yaw_w_2 = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 20);
 
         long time = System.currentTimeMillis();
 
@@ -247,7 +268,7 @@ public class MyoDeviceListener implements DeviceListener {
             }
         }
 
-        //Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w);
+        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w);
     }
 
     @Override

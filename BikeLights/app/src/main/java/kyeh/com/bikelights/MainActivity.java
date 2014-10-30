@@ -18,6 +18,7 @@ import android.view.MenuItem;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 import com.thalmic.myo.Hub;
+import com.thalmic.myo.Quaternion;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,9 +34,11 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
-    private Sensor mGyroscope;
-    private Sensor mRotationVector;
+    private Sensor mMagnetometer;
     private LocationManager mLocationManager;
+
+    float[] mGravity;
+    float[] mGeomagnetic;
 
     private MyoDeviceListener myoDeviceListener;
 
@@ -54,9 +57,8 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mAccelerometer  = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         registerSensors();
 
@@ -248,6 +250,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         switch (sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
                 accelData.add(new AccelPoint(time, x, y, z));
+                mGravity = sensorEvent.values;
 /*                avgAccel.plus(new AccelPoint(time, x, y, z));
                 if (accelData.size() > 2*accelWindow) {
                     AccelPoint val = accelData.remove(0);
@@ -269,15 +272,30 @@ public class MainActivity extends Activity implements SensorEventListener {
                     chartFragment.addAccelerometerValue(time - t, x, y, z);
                 }
                 break;
-            case Sensor.TYPE_GYROSCOPE:
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                mGeomagnetic = sensorEvent.values;
                 break;
-            case Sensor.TYPE_ROTATION_VECTOR:
+        }
+
+        if (mGravity != null && mGeomagnetic != null) {
+            float R[] = new float[9];
+            float I[] = new float[9];
+            boolean success = SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic);
+            if (success) {
+                float orientation[] = new float[3];
+                SensorManager.getOrientation(R, orientation);
+
+                float xo = orientation[0];
+                float yo = orientation[1];
+                float zo = orientation[2];
+
                 if (webSocket != null && webSocket.isOpen()) {
-                    webSocket.send(sensorEvent.values[0] + " " +
-                                   sensorEvent.values[1] + " " +
-                                   sensorEvent.values[2]);
+                    webSocket.send(xo + " " + yo + " " + zo);
                 }
-                break;
+                if (myoDeviceListener != null) {
+                    myoDeviceListener.onOrientationData(null, 0, new Quaternion(xo, yo, zo, 1));
+                }
+            }
         }
     }
 
@@ -288,8 +306,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     public void registerSensors() {
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(this, mRotationVector, SensorManager.SENSOR_DELAY_NORMAL);
+        mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
 
