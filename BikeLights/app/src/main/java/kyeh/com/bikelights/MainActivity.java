@@ -105,6 +105,10 @@ public class MainActivity extends Activity implements SensorEventListener {
             public void onLocationChanged(Location location) {
                 if (location.hasBearing()) {
                     Float bearing = location.getBearing();
+                    if (myoDeviceListener != null) {
+                        myoDeviceListener.setBearing(bearing);
+                    }
+
                     for (int i = 0; i < lastBearings.size() /*/ 2*/; i++) {
                         float absDiff = Math.abs(lastBearings.get(i) - bearing);
                         if (absDiff > 180) {

@@ -26,7 +26,8 @@ public class MyoDeviceListener implements DeviceListener {
     private static final int TURN_RIGHT = 2;
 
     // Bearings (Body Rotation)
-    private static final int turnPitchWindow = 2;  // Within two divs away from desired pitch value
+    private static final int turnYawWindow = 2;  // Within two divs away from desired pitch value
+    private static final int turnPitchCutoff = 4;  // <= Turn inwards, > Turn outwards
     // To calculate valid yaw for right turn:
     // (Bearing + 15) % 20 = (yaw +- turnWindow) % 20
 
@@ -241,21 +242,20 @@ public class MyoDeviceListener implements DeviceListener {
         boolean checkTurnStatus = true;
 
         if (checkTurnStatus) {
-            if (turnOutPitchMin <= pitch_w && pitch_w <= turnOutPitchMax &&
-                    turnOutYawMin <= yaw_w - yaw_base && yaw_w - yaw_base <= turnOutYawMax) {
-                // Send Spark Commands
-                if (turning != TURN_RIGHT) {
+            /*if (turnOutPitchMin <= pitch_w && pitch_w <= turnOutPitchMax &&
+                    turnOutYawMin <= yaw_w - yaw_base && yaw_w - yaw_base <= turnOutYawMax) {*/
+            int adjustedYawDiff = Math.abs(((bearing_w + 15) % 20) - yaw_w);
+            if (adjustedYawDiff <= turnYawWindow || 19 - adjustedYawDiff <= turnYawWindow - 1) {
+                if (pitch_w > turnPitchCutoff && turning != TURN_RIGHT) {
+                    // Send Spark Commands
                     turnRight();
                     sparkLightsFragment.setSparkText("Turning Out");
-                }
-            } else if (turnInPitchMin <= pitch_w && pitch_w <= turnInPitchMax &&
-                turnInYawMin <= yaw_w - yaw_base && yaw_w - yaw_base <= turnInYawMax) {
-                if (turning != TURN_LEFT) {
+                } else if (turning != TURN_LEFT) {
                     turnLeft();
                     sparkLightsFragment.setSparkText("Turning In");
                 }
             } else {
-                sparkLightsFragment.setSparkText("Not Turning");
+                    sparkLightsFragment.setSparkText("Not Turning");
                 /*if (turning != TURN_OFF) {
                     turnOff();
                 }*/
@@ -268,8 +268,9 @@ public class MyoDeviceListener implements DeviceListener {
             }
         }
 
-        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w);
+        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w + "; bearing=" + bearing_w);
     }
+
 
     @Override
     public void onAccelerometerData(Myo myo, long l, Vector3 vector3) {
@@ -310,5 +311,9 @@ public class MyoDeviceListener implements DeviceListener {
             mHandler.removeCallbacks(colorChangeRunnable);
             mHandler.postDelayed(colorChangeRunnable, colorChangeWait);
         }
+    }
+
+    public void setBearing(Float bearing) {
+        this.bearing_w = (int) ((bearing / 360) * 20);
     }
 }
