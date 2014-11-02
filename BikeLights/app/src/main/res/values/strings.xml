@@ -6,7 +6,7 @@
     <string name="action_settings">Settings</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="accel_data_filename">accel.txt</string>
-    <string name="debugging_uri">ws://10.145.181.137:8080/echo</string>
+    <string name="debugging_uri">ws://192.168.0.108:8080/echo</string>
     <string name="toggle_chart">Toggle Chart</string>
 
     <color name="theme_color_dark">#ff3d86ae</color>
