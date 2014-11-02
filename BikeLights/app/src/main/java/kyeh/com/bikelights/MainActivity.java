@@ -11,6 +11,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.FloatMath;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,6 +19,7 @@ import android.view.MenuItem;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 import com.thalmic.myo.Hub;
+import com.thalmic.myo.Quaternion;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,7 +35,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
-    private Sensor mGyroscope;
     private Sensor mRotationVector;
     private LocationManager mLocationManager;
 
@@ -54,7 +55,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mAccelerometer  = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
@@ -275,13 +275,23 @@ public class MainActivity extends Activity implements SensorEventListener {
                     chartFragment.addAccelerometerValue(time - t, x, y, z);
                 }
                 break;
-            case Sensor.TYPE_GYROSCOPE:
-                break;
             case Sensor.TYPE_ROTATION_VECTOR:
+                float w = FloatMath.sqrt(1 - x * x - y * y - z * z);
+
                 if (webSocket != null && webSocket.isOpen()) {
-                    webSocket.send(sensorEvent.values[0] + " " +
-                                   sensorEvent.values[1] + " " +
-                                   sensorEvent.values[2]);
+                    float[] rot = new float[9];
+                    float[] rotMap = new float[9];
+                    SensorManager.getRotationMatrixFromVector(rot, sensorEvent.values);
+                    SensorManager.remapCoordinateSystem(rot, SensorManager.AXIS_X, SensorManager.AXIS_Z, rotMap);
+
+                    String s = Float.toString(rotMap[0]);
+                    for (int i = 1; i < rotMap.length; i++) {
+                        s += " " + rotMap[i];
+                    }
+                    webSocket.send(s);
+                }
+                if (myoDeviceListener != null) {
+                    myoDeviceListener.onOrientationData(null, 0, new Quaternion(x, y, z, w));
                 }
                 break;
         }
@@ -294,7 +304,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     public void registerSensors() {
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mRotationVector, SensorManager.SENSOR_DELAY_NORMAL);
     }
 

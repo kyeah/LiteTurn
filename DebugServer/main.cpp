@@ -40,11 +40,6 @@ float boxRot[16] = {1, 0, 0, 0,
                     0, 0, 1, 0,
                     0, 0, 0, 1};
 
-GLfloat axis_swap[16] = {1, 0, 0, 0,
-                         0, 1, 0, 0,
-                         0, 0, 1, 0,
-                         0, 0, 0, 1};
-
 // lighting
 bool scene_lighting;
 GLfloat light_ambient[] = { 0.1f, 0.1f, 0.1f, 1.0f };
@@ -100,7 +95,6 @@ void Display() {
   glLineWidth(4);
   DrawAxis();
   DrawAxisSphere();
-  glMultMatrixf(axis_swap);
   DrawBox();
 
   // Move the origin up
@@ -398,16 +392,22 @@ void InitWebSocket() {
     stringstream data_ss;
     message->data >> data_ss.rdbuf();
 
-    float x, y, z, w;
-    data_ss >> x;
-    data_ss >> y;
-    data_ss >> z;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        data_ss >> boxRot[i*4+j];
+      }
+    }
 
-    w = 1 - x*x - y*y - z*z;
-    w = (w > 0 ? sqrt(w) : 0);
+    //float x, y, z, w;
+    //data_ss >> x;
+    //data_ss >> y;
+    //    data_ss >> z;
 
-    Vec4f v = Vec4f::makeVec(x, y, z, w);
-    setRotFromQuat(v);
+    //w = 1 - x*x - y*y - z*z;
+    //w = (w > 0 ? sqrt(w) : 0);
+
+    //Vec4f v = Vec4f::makeVec(x, y, z, w);
+    //setRotFromQuat(v);
     cout << "Server: Message received: \"" << data_ss.str() << "\" from " << (size_t)connection.get() << endl;
     cout << "Server: Sending message \"" << data_ss.str() <<  "\" to " << (size_t)connection.get() << endl;
 
