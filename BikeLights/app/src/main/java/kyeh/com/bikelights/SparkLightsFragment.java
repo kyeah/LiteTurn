@@ -2,6 +2,7 @@ package kyeh.com.bikelights;
 
 
 import android.app.Fragment;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -11,7 +12,6 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.larswerkman.holocolorpicker.ColorPicker;
-import com.larswerkman.holocolorpicker.SVBar;
 import com.larswerkman.holocolorpicker.SaturationBar;
 
 
@@ -146,9 +146,9 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
     @Override
     public void onColorChanged(int i) {
         int color = i;
-        int r = (color >> 16) & 0xFF;
-        int g = (color >> 8) & 0xFF;
-        int b = (color >> 0) & 0xFF;
+        int r = Color.red(color);
+        int g = Color.green(color);
+        int b = Color.blue(color);
         mMyoListener.setColor(r, g, b);
     }
 }

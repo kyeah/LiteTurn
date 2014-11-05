@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.thalmic.myo.Arm;
 import com.thalmic.myo.DeviceListener;
 import com.thalmic.myo.Myo;
@@ -45,6 +46,7 @@ public class MyoDeviceListener implements DeviceListener {
 
     Context mContext;
     SparkLightsFragment sparkLightsFragment;
+    TrackerFragment trackerFragment;
 
     Arm mArm;
 
@@ -57,17 +59,31 @@ public class MyoDeviceListener implements DeviceListener {
         }
     };
 
-    private Runnable mLaunchRunnable = new Runnable() {
+    private Runnable mLeftRunnable = new Runnable() {
         @Override
         public void run() {
-            // Launch Spark Command
-            Log.i(TAG, "Launching Spark Command");
+            makeRequest("on", "LEFT");
         }
     };
 
-    public MyoDeviceListener(Context context, SparkLightsFragment fragment) {
+    private Runnable mRightRunnable = new Runnable() {
+        @Override
+        public void run() {
+            makeRequest("on", "RIGHT");
+        }
+    };
+
+    private Runnable mOffRunnable = new Runnable() {
+        @Override
+        public void run() {
+            makeRequest("off", "");
+        }
+    };
+
+    public MyoDeviceListener(Context context, SparkLightsFragment fragment, TrackerFragment tfragment) {
         mContext = context;
         sparkLightsFragment = fragment;
+        trackerFragment = tfragment;
         r = 255;
         g = b = 0;
     }
@@ -80,11 +96,29 @@ public class MyoDeviceListener implements DeviceListener {
         new SparkAsyncTask(mContext).execute(addUrl, otherParams);
     }
 
-    public void turnRight() { makeRequest("on", "RIGHT"); turning = TURN_RIGHT; }
+    public void turnRight() { turnRight(false); }
+    public void turnLeft() { turnLeft(false); }
 
-    public void turnLeft() { makeRequest("on", "LEFT"); turning = TURN_LEFT; }
+    public void turnRight(boolean mapPt) {
+        makeRequest("on", "RIGHT");
+        turning = TURN_RIGHT;
+        if (mapPt && trackerFragment != null) {
+            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE), "Turning Right");
+        }
+    }
 
-    public void turnOff() { makeRequest("off", ""); turning = TURN_OFF; }
+    public void turnLeft(boolean mapPt) {
+        makeRequest("on", "LEFT");
+        turning = TURN_LEFT;
+        if (mapPt && trackerFragment != null) {
+            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE), "Turning Left");
+        }
+    }
+
+    public void turnOff() {
+        makeRequest("off", "");
+        turning = TURN_OFF;
+    }
 
     @Override
     public void onPair(Myo myo, long l) {
@@ -193,19 +227,19 @@ public class MyoDeviceListener implements DeviceListener {
 
         if ((isArmOutStraight() || isArmDown()) && pitch_w < turnPitchCutoff) {
             if (turning != TURN_RIGHT) {
-                turnRight();
+                turnRight(true);
                 sparkLightsFragment.setSparkText("Turning Out");
             }
         } else if (isArmUp() && pitch_w >= turnPitchCutoff) {
             if (turning != TURN_LEFT) {
-                turnLeft();
+                turnLeft(true);
                 sparkLightsFragment.setSparkText("Turning In");
             }
         } else {
                 sparkLightsFragment.setSparkText("Not Turning");
         }
 
-        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w + "; bearing=" + bearing_w);
+        //Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w + "; bearing=" + bearing_w);
     }
 
 

@@ -16,6 +16,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 import com.thalmic.myo.Hub;
@@ -42,6 +44,8 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private ChartFragment chartFragment;
     private SparkLightsFragment sparkLightsFragment;
+    private TrackerFragment trackerFragment;
+
     private ArrayList<AccelPoint> accelData = new ArrayList<AccelPoint>();
     private AccelPoint lastAvgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
     private AccelPoint avgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
@@ -60,17 +64,13 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         registerSensors();
 
+
         Hub hub = Hub.getInstance();
         if (!hub.init(this)) {
             Log.e(TAG, "Could not initialize the Hub.");
-            finish();
-            return;
+            //finish();
+            //return;
         }
-
-        /*
-        Intent intent = new Intent(context, ScanActivity.class);
-        context.startActivity(intent);
-        */
 
         if (savedInstanceState == null) {
             /*chartFragment = new ChartFragment();
@@ -79,12 +79,14 @@ public class MainActivity extends Activity implements SensorEventListener {
                     .commit();*/
 
             sparkLightsFragment = new SparkLightsFragment();
+            trackerFragment = new TrackerFragment();
+            trackerFragment.setLocationManager(mLocationManager);
             getFragmentManager().beginTransaction()
                     .add(R.id.container, sparkLightsFragment)
                     .commit();
         }
 
-        myoDeviceListener = new MyoDeviceListener(this, sparkLightsFragment);
+        myoDeviceListener = new MyoDeviceListener(this, sparkLightsFragment, trackerFragment);
         sparkLightsFragment.setMyoDeviceListener(myoDeviceListener);
 
         // This will connect to the first Myo that is found
@@ -103,6 +105,10 @@ public class MainActivity extends Activity implements SensorEventListener {
 
             @Override
             public void onLocationChanged(Location location) {
+                if (trackerFragment != null) {
+                    trackerFragment.addTrackPoint(new LatLng(location.getLatitude(), location.getLongitude()));
+                }
+
                 if (location.hasBearing()) {
                     Float bearing = location.getBearing();
                     if (myoDeviceListener != null) {
@@ -119,6 +125,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                             if (myoDeviceListener != null) {
                                 myoDeviceListener.turnEnded();
                                 Log.i(TAG, "Detected 90-degreeish turn: " + absDiff);
+                                trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN), "End of 90-degree Turn");
                                 lastBearings.clear();  // Got our turn; only keep that new bearing
                                 count++;
                                 break;
@@ -127,6 +134,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                             if (myoDeviceListener != null) {
                                 myoDeviceListener.turnEnded();
                                 Log.i(TAG, "Detected U-turn: " + absDiff);
+                                trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED), "End of U-Turn");
                                 lastBearings.clear();
                                 ucount++;
                                 break;
