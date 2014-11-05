@@ -158,18 +158,22 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
 
                         if (Math.abs(90 - absDiff) < bearingsTolerance) {
                             if (myoDeviceListener != null) {
-                                myoDeviceListener.turnEnded();
+                                if (SparkClient.turning != SparkClient.TURN_OFF) {
+                                    SparkClient.turnOff(MainActivity.this);
+                                }
                                 Log.i(TAG, "Detected 90-degreeish turn: " + absDiff);
-                                trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN), "End of 90-degree Turn");
+                                trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN), getString(R.string.turn_end_90));
                                 lastBearings.clear();  // Got our turn; only keep that new bearing
                                 count++;
                                 break;
                             }
                         } else if (Math.abs(180 - absDiff) < bearingsTolerance) {
                             if (myoDeviceListener != null) {
-                                myoDeviceListener.turnEnded();
+                                if (SparkClient.turning != SparkClient.TURN_OFF) {
+                                    SparkClient.turnOff(MainActivity.this);
+                                }
                                 Log.i(TAG, "Detected U-turn: " + absDiff);
-                                trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED), "End of U-Turn");
+                                trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED), getString(R.string.turn_end_u));
                                 lastBearings.clear();
                                 ucount++;
                                 break;
@@ -278,6 +282,10 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         try {
             saveData();
         } catch (Exception e) {}
+
+        if (trackerFragment != null) {
+            trackerFragment.saveKML("spark_track");
+        }
     }
 
     @Override
@@ -388,15 +396,17 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
             ps.close();
             fos.close();
         }
+
+        Log.e(TAG, "Saved accel data to " + filename);
     }
 
     public void onTurn(int turnDir) {
         if (trackerFragment == null) return;
 
         if (turnDir == SparkClient.TURN_LEFT) {
-            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE), "Turning Left");
+            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE), getString(R.string.turning_left));
         } else if (turnDir == SparkClient.TURN_RIGHT) {
-            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE), "Turning Right");
+            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE), getString(R.string.turning_right));
         }
     }
 }

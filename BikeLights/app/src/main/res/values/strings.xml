@@ -15,5 +15,10 @@
     <string name="title_activity_splash">SplashActivity</string>
     <string name="drawer_open">Open Drawer</string>
     <string name="drawer_close">Close Drawer</string>
+    <string name="turning_left">Turning Left</string>
+    <string name="turning_right">Turning Right</string>
+    <string name="turn_end_90">End of 90-degree Turn</string>
+    <string name="turn_end_u">End of U-Turn</string>
+    <string name="app_dir">LiteTurn</string>
 
 </resources>

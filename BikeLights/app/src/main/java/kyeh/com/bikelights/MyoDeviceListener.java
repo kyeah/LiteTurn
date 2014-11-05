@@ -192,13 +192,6 @@ public class MyoDeviceListener implements DeviceListener {
         sparkLightsFragment.setStatusText("Myo Rssi Detected!");
     }
 
-    public void turnEnded() {
-        if (SparkClient.turning != SparkClient.TURN_OFF) {
-            Log.d(TAG, "Turning Ended");
-            turnOff();
-        }
-    }
-
     public void setBearing(Float bearing) {
         this.bearing_w = (int) ((bearing / 360) * 20);
     }
