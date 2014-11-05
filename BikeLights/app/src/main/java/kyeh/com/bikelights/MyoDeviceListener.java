@@ -1,11 +1,9 @@
 package kyeh.com.bikelights;
 
 import android.content.Context;
-import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.thalmic.myo.Arm;
 import com.thalmic.myo.DeviceListener;
 import com.thalmic.myo.Myo;
@@ -20,104 +18,42 @@ import com.thalmic.myo.XDirection;
 public class MyoDeviceListener implements DeviceListener {
 
     private final String TAG = "MyoDeviceListener";
-    private static final long HOLD_DURATION = 300;
 
-    private static final int TURN_OFF = 0;
-    private static final int TURN_LEFT = 1;
-    private static final int TURN_RIGHT = 2;
+    private static final int TURN_YAW_WINDOW = 2;  // Within two divs away from desired yaw value
+    private static final int TURN_PITCH_CUTOFF = 17;  // >= Turn inwards, < Turn outwards
+    int roll_w, pitch_w, yaw_w, bearing_w;
 
-    private static final int turnYawWindow = 2;  // Within two divs away from desired yaw value
-    private static final int turnPitchCutoff = 17;  // >= Turn inwards, < Turn outwards
-    float bearing = 0;
-    int bearing_w = 0;
+    private Context mContext;
+    private TurnEventListener turnEventListener;
+    private SparkLightsFragment sparkLightsFragment;
+    private Arm mArm;
 
-    private int turning = TURN_OFF;
-
-    private int r, g, b;
-    private long lastColorChange;
-
-    private boolean mLaunching;
-    private Handler mHandler = new Handler();
-
-    private Quaternion orientation;
-
-    int roll_w, pitch_w, yaw_w;
-    int yaw_base;
-
-    Context mContext;
-    SparkLightsFragment sparkLightsFragment;
-    TrackerFragment trackerFragment;
-
-    Arm mArm;
-
-    private Runnable colorChangeRunnable = new Runnable() {
-
-        @Override
-        public void run() {
-            makeRequest("setColor", String.format("%03d %03d %03d", r, g, b));
-            lastColorChange = System.currentTimeMillis();
-        }
-    };
-
-    private Runnable mLeftRunnable = new Runnable() {
-        @Override
-        public void run() {
-            makeRequest("on", "LEFT");
-        }
-    };
-
-    private Runnable mRightRunnable = new Runnable() {
-        @Override
-        public void run() {
-            makeRequest("on", "RIGHT");
-        }
-    };
-
-    private Runnable mOffRunnable = new Runnable() {
-        @Override
-        public void run() {
-            makeRequest("off", "");
-        }
-    };
-
-    public MyoDeviceListener(Context context, SparkLightsFragment fragment, TrackerFragment tfragment) {
+    public MyoDeviceListener(Context context) {
         mContext = context;
-        sparkLightsFragment = fragment;
-        trackerFragment = tfragment;
-        r = 255;
-        g = b = 0;
     }
 
-    public void calibrateYaw() {
-        yaw_base = yaw_w;
-    }  // TODO: Check Calibration accuracy...
+    public void registerTurnEventListener(TurnEventListener tel) { turnEventListener = tel; }
+    public void setSparkFragment(SparkLightsFragment fragment) { sparkLightsFragment = fragment; }
 
-    private void makeRequest(String addUrl, String otherParams) {
-        new SparkAsyncTask(mContext).execute(addUrl, otherParams);
-    }
-
-    public void turnRight() { turnRight(false); }
-    public void turnLeft() { turnLeft(false); }
-
-    public void turnRight(boolean mapPt) {
-        makeRequest("on", "RIGHT");
-        turning = TURN_RIGHT;
-        if (mapPt && trackerFragment != null) {
-            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE), "Turning Right");
+    public void turnRight() {
+        SparkClient.turnRight(mContext);
+        if (turnEventListener != null) {
+            turnEventListener.onTurn(SparkClient.TURN_RIGHT);
         }
     }
 
-    public void turnLeft(boolean mapPt) {
-        makeRequest("on", "LEFT");
-        turning = TURN_LEFT;
-        if (mapPt && trackerFragment != null) {
-            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE), "Turning Left");
+    public void turnLeft() {
+        SparkClient.turnLeft(mContext);
+        if (turnEventListener != null) {
+            turnEventListener.onTurn(SparkClient.TURN_LEFT);
         }
     }
 
     public void turnOff() {
-        makeRequest("off", "");
-        turning = TURN_OFF;
+        SparkClient.turnOff(mContext);
+        if (turnEventListener != null) {
+            turnEventListener.onTurn(SparkClient.TURN_OFF);
+        }
     }
 
     @Override
@@ -209,30 +145,24 @@ public class MyoDeviceListener implements DeviceListener {
     @Override
     public void onOrientationData(Myo myo, long l, Quaternion quaternion) {
 
-        orientation = quaternion;
+        // Swap Y and Z axes
         double yaw = Quaternion.yaw(quaternion);
         double pitch = Quaternion.roll(quaternion);
         double roll = Quaternion.pitch(quaternion);
 
         // Convert the floating point angles in radians to a scale from 0 to 19.
-        int roll_w_2 = (int)((roll + (float)Math.PI)/(Math.PI * 2.0f) * 20);
-        int pitch_w_2 = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 20);
-        int yaw_w_2 = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 20);
+        roll_w = (int)((roll + (float)Math.PI)/(Math.PI * 2.0f) * 20);
+        pitch_w = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 20);
+        yaw_w = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 20);
 
-        long time = System.currentTimeMillis();
-
-        roll_w = roll_w_2;
-        pitch_w = pitch_w_2;
-        yaw_w = yaw_w_2;
-
-        if ((isArmOutStraight() || isArmDown()) && pitch_w < turnPitchCutoff) {
-            if (turning != TURN_RIGHT) {
-                turnRight(true);
+        if ((isArmOutStraight() || isArmDown()) && pitch_w < TURN_PITCH_CUTOFF) {
+            if (SparkClient.turning != SparkClient.TURN_RIGHT) {
+                turnRight();
                 sparkLightsFragment.setSparkText("Turning Out");
             }
-        } else if (isArmUp() && pitch_w >= turnPitchCutoff) {
-            if (turning != TURN_LEFT) {
-                turnLeft(true);
+        } else if (isArmUp() && pitch_w >= TURN_PITCH_CUTOFF) {
+            if (SparkClient.turning != SparkClient.TURN_LEFT) {
+                turnLeft();
                 sparkLightsFragment.setSparkText("Turning In");
             }
         } else {
@@ -263,44 +193,28 @@ public class MyoDeviceListener implements DeviceListener {
     }
 
     public void turnEnded() {
-        if (turning != TURN_OFF) {
+        if (SparkClient.turning != SparkClient.TURN_OFF) {
             Log.d(TAG, "Turning Ended");
             turnOff();
-            turning = TURN_OFF;
-        }
-    }
-
-    public void setColor(int _r, int _g, int _b) {
-        r = _r % 255;
-        g = _g % 255;
-        b = _b % 255;
-
-        long colorChangeWait = 1000;
-        if (System.currentTimeMillis() - lastColorChange > colorChangeWait) {
-            mHandler.post(colorChangeRunnable);
-        } else {
-            mHandler.removeCallbacks(colorChangeRunnable);
-            mHandler.postDelayed(colorChangeRunnable, colorChangeWait);
         }
     }
 
     public void setBearing(Float bearing) {
-        this.bearing = bearing;
         this.bearing_w = (int) ((bearing / 360) * 20);
     }
 
     public boolean isArmOutStraight() {
         int adjustedYawDiff = Math.abs(((25 - bearing_w) % 20) - yaw_w);
-        return adjustedYawDiff <= turnYawWindow || 19 - adjustedYawDiff <= turnYawWindow - 1;
+        return adjustedYawDiff <= TURN_YAW_WINDOW || 19 - adjustedYawDiff <= TURN_YAW_WINDOW - 1;
     }
 
     public boolean isArmUp() {
         int adjustedYawDiff = Math.abs(((30 - bearing_w) % 20) - yaw_w);
-        return adjustedYawDiff <= turnYawWindow || 19 - adjustedYawDiff <= turnYawWindow - 1;
+        return adjustedYawDiff <= TURN_YAW_WINDOW || 19 - adjustedYawDiff <= TURN_YAW_WINDOW - 1;
     }
 
     public boolean isArmDown() {
         int adjustedYawDiff = (bearing_w + yaw_w) % 20;
-        return adjustedYawDiff <= turnYawWindow || 19 - adjustedYawDiff <= turnYawWindow - 1;
+        return adjustedYawDiff <= TURN_YAW_WINDOW || 19 - adjustedYawDiff <= TURN_YAW_WINDOW - 1;
     }
 }

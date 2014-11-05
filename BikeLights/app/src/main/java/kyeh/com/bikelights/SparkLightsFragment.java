@@ -24,8 +24,6 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
     private Typeface ROBOTO_LIGHT, ROBOTO_MEDIUM;
 
     private TextView statusText, sparkText, armText, bearingText;
-    private Button calibrateYawButton;
-    private MyoDeviceListener mMyoListener;
 
     private ColorPicker picker;
     private SaturationBar svBar;
@@ -66,21 +64,21 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
         leftButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mMyoListener.turnLeft();
+                SparkClient.turnLeft(getActivity());
             }
         });
 
         rightButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mMyoListener.turnRight();
+                SparkClient.turnRight(getActivity());
             }
         });
 
         offButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mMyoListener.turnOff();
+                SparkClient.turnOff(getActivity());
             }
         });
 
@@ -92,31 +90,7 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
 
         picker.setOnColorChangedListener(this);
 
-        // Calibrate Yaw with arm in yaw=1 position (Arm down by your side)
-        calibrateYawButton = (Button) rootView.findViewById(R.id.calibrate_yaw_button);
-        calibrateYawButton.setTypeface(ROBOTO_MEDIUM);
-
-        if (mMyoListener != null) {
-            calibrateYawButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    mMyoListener.calibrateYaw();
-                }
-            });
-        }
         return rootView;
-    }
-
-    public void setMyoDeviceListener(MyoDeviceListener listener) {
-        mMyoListener = listener;
-        if (calibrateYawButton != null) {
-            calibrateYawButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    mMyoListener.calibrateYaw();
-                }
-            });
-        }
     }
 
     public void setStatusText(String s) {
@@ -149,6 +123,6 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
         int r = Color.red(color);
         int g = Color.green(color);
         int b = Color.blue(color);
-        mMyoListener.setColor(r, g, b);
+        SparkClient.setColor(r, g, b);
     }
 }

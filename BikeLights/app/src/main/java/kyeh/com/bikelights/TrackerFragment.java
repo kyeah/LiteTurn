@@ -42,7 +42,10 @@ public class TrackerFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         View rootView = inflater.inflate(R.layout.fragment_tracker, container, false);
-        map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
+        MapFragment mapFragment = ((MapFragment) getFragmentManager().findFragmentById(R.id.map));
+        mapFragment.setRetainInstance(true);
+
+        map = mapFragment.getMap();
         map.setMyLocationEnabled(true);
 
         Polyline route = map.addPolyline(new PolylineOptions()

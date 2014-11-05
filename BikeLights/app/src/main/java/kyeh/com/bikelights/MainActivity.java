@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 
-public class MainActivity extends Activity implements SensorEventListener {
+public class MainActivity extends Activity implements SensorEventListener, TurnEventListener {
 
     private static final int accelWindow = 100;
 
@@ -61,16 +61,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         mAccelerometer  = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
         registerSensors();
-
-
-        Hub hub = Hub.getInstance();
-        if (!hub.init(this)) {
-            Log.e(TAG, "Could not initialize the Hub.");
-            //finish();
-            //return;
-        }
 
         if (savedInstanceState == null) {
             /*chartFragment = new ChartFragment();
@@ -82,26 +73,33 @@ public class MainActivity extends Activity implements SensorEventListener {
             trackerFragment = new TrackerFragment();
             trackerFragment.setLocationManager(mLocationManager);
             getFragmentManager().beginTransaction()
-                    .add(R.id.container, sparkLightsFragment)
+                    .add(R.id.container, trackerFragment)
                     .commit();
         }
 
-        myoDeviceListener = new MyoDeviceListener(this, sparkLightsFragment, trackerFragment);
-        sparkLightsFragment.setMyoDeviceListener(myoDeviceListener);
+        myoDeviceListener = new MyoDeviceListener(this);
+        myoDeviceListener.registerTurnEventListener(this);
+        myoDeviceListener.setSparkFragment(sparkLightsFragment);
 
-        // This will connect to the first Myo that is found
-        /*
-        Hub.getInstance().pairWithAnyMyo();
-        Hub.getInstance().addListener(myoDeviceListener);
-*/
+        Hub hub = Hub.getInstance();
+        if (!hub.init(this)) {
+            Log.e(TAG, "Could not initialize the Hub.");
+            //finish();
+            //return;
+        } else {
+            // This will connect to the first Myo that is found
+            Hub.getInstance().pairWithAnyMyo();
+            Hub.getInstance().addListener(myoDeviceListener);
+        }
 
         LocationListener locationListener = new LocationListener() {
 
             private static final int bearingsWindow = 5;  // Keep last 10 bearings
             private static final float bearingsTolerance = 15;  // 30-degree turn tolerance on each side
+
+            ArrayList<Float> lastBearings = new ArrayList<Float>();
             private int count = 0;
             private int ucount = 0;
-            ArrayList<Float> lastBearings = new ArrayList<Float>();
 
             @Override
             public void onLocationChanged(Location location) {
@@ -115,7 +113,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                         myoDeviceListener.setBearing(bearing);
                     }
 
-                    for (int i = 0; i < lastBearings.size() /*/ 2*/; i++) {
+                    for (int i = 0; i < lastBearings.size(); i++) {
                         float absDiff = Math.abs(lastBearings.get(i) - bearing);
                         if (absDiff > 180) {
                             absDiff = 360 - absDiff;
@@ -146,6 +144,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     if (lastBearings.size() > bearingsWindow) {
                         lastBearings.remove(0);
                     }
+
                     Log.i(TAG, Float.toString(location.getBearing()));
                     Log.i(TAG, lastBearings.toString());
                     sparkLightsFragment.setBearingText("FUCK THE ARM! Got Bearing: " + bearing + " with total turns: " + count + ", u-turns: " + ucount + " and history " + lastBearings.toString());
@@ -337,6 +336,16 @@ public class MainActivity extends Activity implements SensorEventListener {
             ps.flush();
             ps.close();
             fos.close();
+        }
+    }
+
+    public void onTurn(int turnDir) {
+        if (trackerFragment == null) return;
+
+        if (turnDir == SparkClient.TURN_LEFT) {
+            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE), "Turning Left");
+        } else if (turnDir == SparkClient.TURN_RIGHT) {
+            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE), "Turning Right");
         }
     }
 }
