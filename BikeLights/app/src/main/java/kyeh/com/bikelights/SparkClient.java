@@ -27,38 +27,9 @@ public class SparkClient {
     private static Handler colorHandler = new Handler();
     private static Handler turnHandler = new Handler();
 
-    private static Runnable colorChangeRunnable = new Runnable() {
-        @Override
-        public void run() {
-            makeRequest(null, "setColor", String.format("%03d %03d %03d", r, g, b));
-            lastColorChange = System.currentTimeMillis();
-        }
-    };
-
-    private static Runnable mLeftRunnable = new Runnable() {
-        @Override
-        public void run() {
-            makeRequest(null, "on", "LEFT");
-        }
-    };
-
-    private static Runnable mRightRunnable = new Runnable() {
-        @Override
-        public void run() {
-            makeRequest(null, "on", "RIGHT");
-        }
-    };
-
-    private static Runnable mOffRunnable = new Runnable() {
-        @Override
-        public void run() {
-            makeRequest(null, "off", "");
-        }
-    };
-
     private SparkClient() { }
 
-    public static void makeRequest(Context context, String addUrl, String otherParams) {
+    public static void makeRequest(final Context context, final String addUrl, final String otherParams) {
         new SparkAsyncTask(context).execute(addUrl, otherParams);
     }
 
@@ -77,15 +48,23 @@ public class SparkClient {
         turning = TURN_OFF;
     }
 
-    public static void setColor(int _r, int _g, int _b) {
+    public static void setColor(final Context context, int _r, int _g, int _b) {
         r = _r % 255;
         g = _g % 255;
         b = _b % 255;
 
+        Runnable colorChangeRunnable = new Runnable() {
+            @Override
+            public void run() {
+                makeRequest(context, "setColor", String.format("%03d %03d %03d", r, g, b));
+                lastColorChange = System.currentTimeMillis();
+            }
+        };
+
         if (System.currentTimeMillis() - lastColorChange > COLOR_CHANGE_WAIT) {
             colorHandler.post(colorChangeRunnable);
         } else {
-            colorHandler.removeCallbacks(colorChangeRunnable);
+            colorHandler.removeCallbacksAndMessages(null);
             colorHandler.postDelayed(colorChangeRunnable, COLOR_CHANGE_WAIT);
         }
     }

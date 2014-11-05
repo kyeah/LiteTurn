@@ -65,7 +65,7 @@ public class ChartFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        rootView = (RelativeLayout) inflater.inflate(R.layout.fragment_main, container, false);
+        rootView = (RelativeLayout) inflater.inflate(R.layout.fragment_chart, container, false);
         toggleButton = (Button) rootView.findViewById(R.id.toggle_chart_button);
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override

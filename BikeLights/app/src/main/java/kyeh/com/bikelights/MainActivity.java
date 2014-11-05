@@ -1,6 +1,7 @@
 package kyeh.com.bikelights;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -11,11 +12,18 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v4.app.ActionBarDrawerToggle;
+import android.support.v4.widget.DrawerLayout;
 import android.util.FloatMath;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
+import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.koushikdutta.async.http.AsyncHttpClient;
@@ -34,6 +42,12 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     private static final int accelWindow = 100;
 
     private final String TAG = "MainActivity";
+    private static String navItems[] = {"Spark Controller", "Location Tracker"};
+
+    private ActionBarDrawerToggle mDrawerToggle;
+    private DrawerLayout mDrawerLayout;
+    private View mDrawerView;
+    private ListView mDrawerList;
 
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
@@ -57,6 +71,31 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         super.onCreate(savedInstanceState);
         setContentView(R.layout.layout_main);
 
+        mDrawerLayout = (DrawerLayout)          findViewById(R.id.drawer_layout);
+        mDrawerView =   (View)                  findViewById(R.id.left_drawer);
+        mDrawerList =   (ListView)              findViewById(R.id.drawer_list);
+
+        // Set the adapter for the list view
+        mDrawerList.setAdapter(new ArrayAdapter<String>(this,
+                android.R.layout.simple_list_item_1, navItems));
+
+        // Set the list's click listener
+        mDrawerList.setOnItemClickListener(new ListView.OnItemClickListener() {
+            public void onItemClick(AdapterView parent, View view, int position, long id) {
+                selectNavItem(position);
+            }
+        });
+
+        mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,
+                R.drawable.ic_drawer,
+                R.string.drawer_open,
+                R.string.drawer_close
+        );
+
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+        getActionBar().setDisplayHomeAsUpEnabled(true);
+        getActionBar().setHomeButtonEnabled(true);
+
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mAccelerometer  = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
@@ -69,12 +108,9 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
                     .add(R.id.container, chartFragment)
                     .commit();*/
 
-            sparkLightsFragment = new SparkLightsFragment();
+            sparkLightsFragment = new SparkLightsFragment(this);
             trackerFragment = new TrackerFragment();
             trackerFragment.setLocationManager(mLocationManager);
-            getFragmentManager().beginTransaction()
-                    .add(R.id.container, trackerFragment)
-                    .commit();
         }
 
         myoDeviceListener = new MyoDeviceListener(this);
@@ -92,6 +128,7 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
             Hub.getInstance().addListener(myoDeviceListener);
         }
 
+        MapsInitializer.initialize(getApplicationContext());
         LocationListener locationListener = new LocationListener() {
 
             private static final int bearingsWindow = 5;  // Keep last 10 bearings
@@ -185,6 +222,32 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
                         MainActivity.this.webSocket = webSocket;
                     }
                 });
+
+        selectNavItem(0);
+    }
+
+    private void selectNavItem(int position) {
+        Fragment f;
+        switch (position) {
+            case 0: f = sparkLightsFragment; break;
+            default: f = trackerFragment;
+        }
+
+        getFragmentManager().beginTransaction().replace(R.id.content_frame, f).commit();
+
+        // Highlight the selected item, update the title, and close the drawer
+        mDrawerList.setItemChecked(position, true);
+        setTitle(navItems[position]);
+        mDrawerLayout.closeDrawer(mDrawerView);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (mDrawerToggle.onOptionsItemSelected(item)) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -235,18 +298,6 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     @Override

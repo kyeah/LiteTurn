@@ -13,5 +13,7 @@
     <color name="theme_color_darker">#ff1b649c</color>
 
     <string name="title_activity_splash">SplashActivity</string>
+    <string name="drawer_open">Open Drawer</string>
+    <string name="drawer_close">Close Drawer</string>
 
 </resources>

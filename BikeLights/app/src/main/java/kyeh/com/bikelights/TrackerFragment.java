@@ -31,9 +31,7 @@ public class TrackerFragment extends Fragment {
     private LocationManager mLocationManager;
     private ArrayList<LatLng> trackPoints = new ArrayList<LatLng>();
 
-    public TrackerFragment() {
-
-    }
+    public TrackerFragment() {}
 
     public void setLocationManager(LocationManager lm) { mLocationManager = lm; }
 

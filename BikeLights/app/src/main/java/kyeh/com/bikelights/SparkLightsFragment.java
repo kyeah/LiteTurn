@@ -2,6 +2,7 @@ package kyeh.com.bikelights;
 
 
 import android.app.Fragment;
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -22,16 +23,16 @@ import com.larswerkman.holocolorpicker.SaturationBar;
 public class SparkLightsFragment extends Fragment implements ColorPicker.OnColorChangedListener {
 
     private Typeface ROBOTO_LIGHT, ROBOTO_MEDIUM;
-
     private TextView statusText, sparkText, armText, bearingText;
 
     private ColorPicker picker;
     private SaturationBar svBar;
 
-    public SparkLightsFragment() {
-        // Required empty public constructor
-    }
+    private Context mContext;
 
+    public SparkLightsFragment(Context context) {
+        mContext = context;
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -123,6 +124,6 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
         int r = Color.red(color);
         int g = Color.green(color);
         int b = Color.blue(color);
-        SparkClient.setColor(r, g, b);
+        SparkClient.setColor(mContext, r, g, b);
     }
 }
