@@ -3,7 +3,6 @@ package kyeh.com.bikelights;
 
 import android.app.Fragment;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -43,6 +42,7 @@ public class TrackerFragment extends Fragment {
     private ArrayList<LatLng> trackPoints = new ArrayList<LatLng>();
     private ArrayList<Marker> markers = new ArrayList<Marker>();
     private GoogleApiClient mGoogleApiClient;
+    private Polyline route;
 
     public TrackerFragment() {}
 
@@ -59,13 +59,11 @@ public class TrackerFragment extends Fragment {
             map = mapFragment.getMap();
             map.setMyLocationEnabled(true);
 
-            Polyline route = map.addPolyline(new PolylineOptions()
+            route = map.addPolyline(new PolylineOptions()
                     .width(3)
                             //.color(_pathColor)
                     .geodesic(true));
             //.zIndex(z));
-
-            route.setPoints(trackPoints);
         }
 
         return root;
@@ -74,6 +72,9 @@ public class TrackerFragment extends Fragment {
 
     public void addTrackPoint(LatLng latLng) {
         trackPoints.add(latLng);
+        if (route != null) {
+            route.setPoints(trackPoints);
+        }
     }
 
     public void marker(LatLng position, final BitmapDescriptor bitmapDescriptor, final String title) {
@@ -81,6 +82,9 @@ public class TrackerFragment extends Fragment {
 
         if (position == null) {
             Location loc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            if (loc == null) {
+                return;
+            }
             position = new LatLng(loc.getLatitude(), loc.getLongitude());
         }
 
@@ -126,14 +130,16 @@ public class TrackerFragment extends Fragment {
                         "\n <Document>" + "\n");
 
                 // Polyline
-                outWriter.write("<LineString id=\"route\">" +
+                outWriter.write("<Placemark>" +
+                        "\n<LineString id=\"route\">" +
                         "\n<gx:altitudeOffset>0</gx:altitudeOffset>" +
                         "\n<extrude>0</extrude>" +
                         "\n<tessellate>0</tessellate>" +
                         "\n<altitudeMode>clampToGround</altitudeMode>" +
                         "\n<gx:drawOrder>0</gx:drawOrder>" +
                         trackCoords +
-                        "\n</LineString>");
+                        "\n</LineString>" +
+                        "\n</Placemark>\n");
 
                 // Markers
                 for (int i = 0; i < markers.size(); i++) {
@@ -152,7 +158,7 @@ public class TrackerFragment extends Fragment {
                     outWriter.write("<Placemark>" +
                             "\n<name>" + i + " | " + marker.getTitle() + "</name>" +
                             "\n<description> </description>" +
-                            "\n<Style id=\"normalPlacemark\">" +
+                            "\n<Style id=\"normalPlacemark" + i + "\">" +
                             "\n<IconStyle>" +
                             "\n<Icon>" +
                             "\n<href>" + iconLink + "</href>" +
