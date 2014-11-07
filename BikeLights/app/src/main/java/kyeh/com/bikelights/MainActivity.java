@@ -8,8 +8,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.app.ActionBarDrawerToggle;
@@ -23,6 +21,12 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
@@ -37,7 +41,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 
-public class MainActivity extends Activity implements SensorEventListener, TurnEventListener {
+public class MainActivity extends Activity implements SensorEventListener, TurnEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private static final int accelWindow = 100;
 
@@ -52,7 +56,8 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
     private Sensor mRotationVector;
-    private LocationManager mLocationManager;
+    private GoogleApiClient mGoogleApiClient;
+    private LocationRequest mLocationRequest;
 
     private MyoDeviceListener myoDeviceListener;
 
@@ -65,6 +70,23 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     private AccelPoint avgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
 
     private WebSocket webSocket;
+    private LocationListener locationListener;
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Connect the client.
+        if (GooglePlayServicesUtil.isGooglePlayServicesAvailable(this) == ConnectionResult.SUCCESS) {
+            mGoogleApiClient.connect();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        // Disconnecting the client invalidates it.
+        mGoogleApiClient.disconnect();
+        super.onStop();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,8 +121,13 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mAccelerometer  = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         registerSensors();
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(LocationServices.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
 
         if (savedInstanceState == null) {
             /*chartFragment = new ChartFragment();
@@ -110,7 +137,7 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
 
             sparkLightsFragment = new SparkLightsFragment(this);
             trackerFragment = new TrackerFragment();
-            trackerFragment.setLocationManager(mLocationManager);
+            trackerFragment.setGoogleApiClient(mGoogleApiClient);
         }
 
         myoDeviceListener = new MyoDeviceListener(this);
@@ -129,7 +156,7 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         }
 
         MapsInitializer.initialize(getApplicationContext());
-        LocationListener locationListener = new LocationListener() {
+        locationListener = new LocationListener() {
 
             private static final int bearingsWindow = 5;  // Keep last 10 bearings
             private static final float bearingsTolerance = 15;  // 30-degree turn tolerance on each side
@@ -191,27 +218,7 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
                     sparkLightsFragment.setBearingText("FUCK THE ARM! Got Bearing: " + bearing + " with total turns: " + count + ", u-turns: " + ucount + " and history " + lastBearings.toString());
                 }
             }
-
-            @Override
-            public void onStatusChanged(String s, int i, Bundle bundle) {
-
-            }
-
-            @Override
-            public void onProviderEnabled(String s) {
-
-            }
-
-            @Override
-            public void onProviderDisabled(String s) {
-
-            }
         };
-
-        // Request updates with GPS accuracy at a 1s update rate and 10m position change
-        // Typical city blocks are about 100m long, for reference.
-        // Need to check the units of these arguments.
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 25, 10f, locationListener);
 
         AsyncHttpClient.getDefaultInstance().websocket(getResources().getString(R.string.debugging_uri),
                 null, new AsyncHttpClient.WebSocketConnectCallback() {
@@ -277,8 +284,6 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     @Override
     protected void onPause() {
         super.onPause();
-        mSensorManager.unregisterListener(this);
-        //Hub.getInstance().removeListener(myoDeviceListener);
         try {
             saveData();
         } catch (Exception e) {}
@@ -369,8 +374,12 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     }
 
     public void registerSensors() {
-        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(this, mRotationVector, SensorManager.SENSOR_DELAY_NORMAL);
+        try {
+            mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+            mSensorManager.registerListener(this, mRotationVector, SensorManager.SENSOR_DELAY_NORMAL);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to register sensors", e);
+        }
     }
 
 
@@ -408,5 +417,28 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         } else if (turnDir == SparkClient.TURN_RIGHT) {
             trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE), getString(R.string.turning_right));
         }
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        // Request updates with GPS accuracy at a 1s update rate and 10m position change
+        // Typical city blocks are about 100m long, for reference.
+        // Need to check the units of these arguments.
+        // 25 10f
+        mLocationRequest = LocationRequest.create();
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setSmallestDisplacement(10);
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, locationListener);
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        Log.e(TAG, "Connection Suspended - " + i);
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Log.e(TAG, "Connection Failed: " + connectionResult);
     }
 }

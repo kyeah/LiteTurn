@@ -3,7 +3,6 @@ package kyeh.com.bikelights;
 
 import android.app.Fragment;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
@@ -12,6 +11,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
@@ -39,13 +40,13 @@ public class TrackerFragment extends Fragment {
 
     private View root;
     private GoogleMap map;
-    private LocationManager mLocationManager;
     private ArrayList<LatLng> trackPoints = new ArrayList<LatLng>();
     private ArrayList<Marker> markers = new ArrayList<Marker>();
+    private GoogleApiClient mGoogleApiClient;
 
     public TrackerFragment() {}
 
-    public void setLocationManager(LocationManager lm) { mLocationManager = lm; }
+    public void setGoogleApiClient(GoogleApiClient client) { mGoogleApiClient = client; }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -79,39 +80,15 @@ public class TrackerFragment extends Fragment {
         if (map == null) return;
 
         if (position == null) {
-            mLocationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER, new LocationListener() {
-                @Override
-                public void onLocationChanged(Location location) {
-                    LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
-                    Marker marker = map.addMarker(new MarkerOptions()
-                            .position(position)
-                            .icon(bitmapDescriptor)
-                            .title(title));
-                    markers.add(marker);
-                }
-
-                @Override
-                public void onStatusChanged(String s, int i, Bundle bundle) {
-
-                }
-
-                @Override
-                public void onProviderEnabled(String s) {
-
-                }
-
-                @Override
-                public void onProviderDisabled(String s) {
-
-                }
-            }, null);
-        } else {
-            Marker marker = map.addMarker(new MarkerOptions()
-                    .position(position)
-                    .icon(bitmapDescriptor)
-                    .title(title));
-            markers.add(marker);
+            Location loc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            position = new LatLng(loc.getLatitude(), loc.getLongitude());
         }
+
+        Marker marker = map.addMarker(new MarkerOptions()
+                .position(position)
+                .icon(bitmapDescriptor)
+                .title(title));
+        markers.add(marker);
     }
 
     public boolean saveKML(String filename) {
