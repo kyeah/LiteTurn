@@ -27,6 +27,7 @@ public class MyoDeviceListener implements DeviceListener {
     private TurnEventListener turnEventListener;
     private SparkLightsFragment sparkLightsFragment;
     private Arm mArm;
+    private boolean lefty = true;
 
     public MyoDeviceListener(Context context) {
         mContext = context;
@@ -155,21 +156,33 @@ public class MyoDeviceListener implements DeviceListener {
         pitch_w = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 20);
         yaw_w = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 20);
 
-        if ((isArmOutStraight() || isArmDown()) && pitch_w < TURN_PITCH_CUTOFF) {
-            if (SparkClient.turning != SparkClient.TURN_RIGHT) {
-                turnRight();
+        int outTurn = (lefty ? SparkClient.TURN_LEFT : SparkClient.TURN_RIGHT);
+        int inTurn = (lefty ? SparkClient.TURN_RIGHT : SparkClient.TURN_LEFT);
+
+        if ((/*isArmOutStraight() ||*/ isArmDown()) && pitch_w < TURN_PITCH_CUTOFF) {
+            if (SparkClient.turning != outTurn) {
+                if (lefty) {
+                    turnLeft();
+                } else {
+                    turnRight();
+                }
                 sparkLightsFragment.setSparkText("Turning Out");
             }
         } else if (isArmUp() && pitch_w >= TURN_PITCH_CUTOFF) {
-            if (SparkClient.turning != SparkClient.TURN_LEFT) {
-                turnLeft();
+            if (SparkClient.turning != inTurn) {
+                if (lefty) {
+                    turnRight();
+                } else {
+                    turnLeft();
+                }
                 sparkLightsFragment.setSparkText("Turning In");
             }
         } else {
+                SparkClient.cancelPendingTurns();
                 sparkLightsFragment.setSparkText("Not Turning");
         }
 
-        //Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w + "; bearing=" + bearing_w);
+        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w + "; bearing=" + bearing_w);
     }
 
 
@@ -198,6 +211,9 @@ public class MyoDeviceListener implements DeviceListener {
 
     public boolean isArmOutStraight() {
         int adjustedYawDiff = Math.abs(((25 - bearing_w) % 20) - yaw_w);
+        if (lefty) {
+            adjustedYawDiff = (adjustedYawDiff + 10) % 20;
+        }
         return adjustedYawDiff <= TURN_YAW_WINDOW || 19 - adjustedYawDiff <= TURN_YAW_WINDOW - 1;
     }
 

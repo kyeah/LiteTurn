@@ -33,19 +33,39 @@ public class SparkClient {
         new SparkAsyncTask(context).execute(addUrl, otherParams);
     }
 
-    public static void turnRight(Context context) {
-        makeRequest(context, "on", "RIGHT");
-        turning = TURN_RIGHT;
+    public static void turnRight(final Context context) {
+        if (turning != TURN_RIGHT) {
+            turning = TURN_RIGHT;
+            Runnable turnRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    makeRequest(context, "on", "RIGHT");
+                }
+            };
+            turnHandler.removeCallbacksAndMessages(null);
+            turnHandler.postDelayed(turnRunnable, HOLD_DURATION);
+            //makeRequest(context, "on", "RIGHT");
+        }
     }
 
-    public static void turnLeft(Context context) {
-        makeRequest(context, "on", "LEFT");
-        turning = TURN_LEFT;
+    public static void turnLeft(final Context context) {
+        if (turning != TURN_LEFT) {
+            turning = TURN_LEFT;
+            Runnable turnRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    makeRequest(context, "on", "LEFT");
+                }
+            };
+            turnHandler.removeCallbacksAndMessages(null);
+            turnHandler.postDelayed(turnRunnable, HOLD_DURATION);
+            //makeRequest(context, "on", "RIGHT");
+        }
     }
 
-    public static void turnOff(Context context) {
-        makeRequest(context, "off", "");
+    public static void turnOff(final Context context) {
         turning = TURN_OFF;
+        makeRequest(context, "off", "");
     }
 
     public static void setColor(final Context context, int _r, int _g, int _b) {
@@ -69,4 +89,8 @@ public class SparkClient {
         }
     }
 
+    public static void cancelPendingTurns() {
+        turnHandler.removeCallbacksAndMessages(null);
+        turning = TURN_OFF;
+    }
 }
