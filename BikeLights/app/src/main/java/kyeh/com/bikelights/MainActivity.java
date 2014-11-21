@@ -141,7 +141,7 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         }
 
         myoDeviceListener = new MyoDeviceListener(this);
-        myoDeviceListener.registerTurnEventListener(this);
+        SparkClient.registerTurnEventListener(this);
         myoDeviceListener.setSparkFragment(sparkLightsFragment);
 
         Hub hub = Hub.getInstance();

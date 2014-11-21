@@ -26,8 +26,10 @@ public class SparkClient {
     private static final long HOLD_DURATION = 300;
     private static Handler colorHandler = new Handler();
     private static Handler turnHandler = new Handler();
+    private static TurnEventListener turnEventListener;
 
     private SparkClient() { }
+    public static void registerTurnEventListener(TurnEventListener tel) { turnEventListener = tel; }
 
     public static void makeRequest(final Context context, final String addUrl, final String otherParams) {
         new SparkAsyncTask(context).execute(addUrl, otherParams);
@@ -39,6 +41,9 @@ public class SparkClient {
             Runnable turnRunnable = new Runnable() {
                 @Override
                 public void run() {
+                    if (turnEventListener != null) {
+                        turnEventListener.onTurn(SparkClient.TURN_RIGHT);
+                    }
                     makeRequest(context, "on", "RIGHT");
                 }
             };
@@ -54,6 +59,9 @@ public class SparkClient {
             Runnable turnRunnable = new Runnable() {
                 @Override
                 public void run() {
+                    if (turnEventListener != null) {
+                        turnEventListener.onTurn(SparkClient.TURN_LEFT);
+                    }
                     makeRequest(context, "on", "LEFT");
                 }
             };
@@ -65,6 +73,9 @@ public class SparkClient {
 
     public static void turnOff(final Context context) {
         turning = TURN_OFF;
+        if (turnEventListener != null) {
+            turnEventListener.onTurn(SparkClient.TURN_OFF);
+        }
         makeRequest(context, "off", "");
     }
 

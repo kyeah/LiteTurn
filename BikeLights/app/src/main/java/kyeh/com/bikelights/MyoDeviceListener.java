@@ -24,7 +24,6 @@ public class MyoDeviceListener implements DeviceListener {
     int roll_w, pitch_w, yaw_w, bearing_w;
 
     private Context mContext;
-    private TurnEventListener turnEventListener;
     private SparkLightsFragment sparkLightsFragment;
     private Arm mArm;
     private boolean lefty = true;
@@ -33,28 +32,18 @@ public class MyoDeviceListener implements DeviceListener {
         mContext = context;
     }
 
-    public void registerTurnEventListener(TurnEventListener tel) { turnEventListener = tel; }
     public void setSparkFragment(SparkLightsFragment fragment) { sparkLightsFragment = fragment; }
 
     public void turnRight() {
         SparkClient.turnRight(mContext);
-        if (turnEventListener != null) {
-            turnEventListener.onTurn(SparkClient.TURN_RIGHT);
-        }
     }
 
     public void turnLeft() {
         SparkClient.turnLeft(mContext);
-        if (turnEventListener != null) {
-            turnEventListener.onTurn(SparkClient.TURN_LEFT);
-        }
     }
 
     public void turnOff() {
         SparkClient.turnOff(mContext);
-        if (turnEventListener != null) {
-            turnEventListener.onTurn(SparkClient.TURN_OFF);
-        }
     }
 
     @Override
