@@ -23,7 +23,7 @@ public class SparkClient {
     private static long lastColorChange;
 
     // Delay Configurations
-    private static final long HOLD_DURATION = 300;
+    private static final long HOLD_DURATION = 150;
     private static Handler colorHandler = new Handler();
     private static Handler turnHandler = new Handler();
     private static TurnEventListener turnEventListener;

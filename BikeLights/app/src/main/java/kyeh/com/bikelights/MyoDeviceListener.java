@@ -19,8 +19,8 @@ public class MyoDeviceListener implements DeviceListener {
 
     private final String TAG = "MyoDeviceListener";
 
-    private static final int TURN_YAW_WINDOW = 2;  // Within two divs away from desired yaw value
-    private static final int TURN_PITCH_CUTOFF = 17;  // >= Turn inwards, < Turn outwards
+    private static final int TURN_YAW_WINDOW = 5;  // Within two divs away from desired yaw value
+    private static final int TURN_PITCH_CUTOFF = 34;  // >= Turn inwards, < Turn outwards
     int roll_w, pitch_w, yaw_w, bearing_w;
 
     private Context mContext;
@@ -141,9 +141,9 @@ public class MyoDeviceListener implements DeviceListener {
         double roll = Quaternion.pitch(quaternion);
 
         // Convert the floating point angles in radians to a scale from 0 to 19.
-        roll_w = (int)((roll + (float)Math.PI)/(Math.PI * 2.0f) * 20);
-        pitch_w = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 20);
-        yaw_w = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 20);
+        roll_w = (int)((roll + (float)Math.PI)/(Math.PI * 2.0f) * 40);
+        pitch_w = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 40);
+        yaw_w = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 40);
 
         int outTurn = (lefty ? SparkClient.TURN_LEFT : SparkClient.TURN_RIGHT);
         int inTurn = (lefty ? SparkClient.TURN_RIGHT : SparkClient.TURN_LEFT);
@@ -195,24 +195,24 @@ public class MyoDeviceListener implements DeviceListener {
     }
 
     public void setBearing(Float bearing) {
-        this.bearing_w = (int) ((bearing / 360) * 20);
+        this.bearing_w = (int) ((bearing / 360) * 40);
     }
 
     public boolean isArmOutStraight() {
-        int adjustedYawDiff = Math.abs(((25 - bearing_w) % 20) - yaw_w);
+        int adjustedYawDiff = Math.abs(((50 - bearing_w) % 40) - yaw_w);
         if (lefty) {
-            adjustedYawDiff = (adjustedYawDiff + 10) % 20;
+            adjustedYawDiff = (adjustedYawDiff + 20) % 40;
         }
-        return adjustedYawDiff <= TURN_YAW_WINDOW || 19 - adjustedYawDiff <= TURN_YAW_WINDOW - 1;
+        return adjustedYawDiff <= TURN_YAW_WINDOW || 38 - adjustedYawDiff <= TURN_YAW_WINDOW - 2;
     }
 
     public boolean isArmUp() {
-        int adjustedYawDiff = Math.abs(((30 - bearing_w) % 20) - yaw_w);
-        return adjustedYawDiff <= TURN_YAW_WINDOW || 19 - adjustedYawDiff <= TURN_YAW_WINDOW - 1;
+        int adjustedYawDiff = Math.abs(((60 - bearing_w) % 40) - yaw_w);
+        return adjustedYawDiff <= TURN_YAW_WINDOW || 38 - adjustedYawDiff <= TURN_YAW_WINDOW - 2;
     }
 
     public boolean isArmDown() {
-        int adjustedYawDiff = (bearing_w + yaw_w) % 20;
-        return adjustedYawDiff <= TURN_YAW_WINDOW || 19 - adjustedYawDiff <= TURN_YAW_WINDOW - 1;
+        int adjustedYawDiff = (bearing_w + yaw_w) % 40;
+        return adjustedYawDiff <= TURN_YAW_WINDOW || 38 - adjustedYawDiff <= TURN_YAW_WINDOW - 2;
     }
 }
