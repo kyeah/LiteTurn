@@ -7,7 +7,7 @@ LiteTurn is a gesture recognition and automation system for cheap, accessible, a
 
 At HackTX 2014, we developed a prototype consumer product that used Myo gesture and orientation sensors to detect turn signal gestures, Android GPS bearing information to detect turn completions, and a wireless Spark Core hooked up to a 24-Neopixel LED ring that acted as turn lights. These products were available at hand, but could be easily replaced by a consumer smartwatch and a cheap microcontroller + bluetooth chip to provide lower energy usage, lower costs, and more accurate recognition.
 
-The product was further developed as part of the CS386W Wireless Networking course at The University of Texas at Austin. The paper draft can be found [here](http://kyeh.me/img/projects/liteturn-final.pdf), with the accompanying presentation located [here](http://kyeh.me/img/projects/liteturn-pres.pdf).
+The product was further developed as part of the CS386W Wireless Networking course at The University of Texas at Austin. The final research paper can be found [here](http://kyeh.me/img/projects/liteturn-final.pdf), with the accompanying presentation located [here](http://kyeh.me/img/projects/liteturn-pres.pdf).
 
 In the future, the hope is to develop LiteTurn into a system that can detect the following activities in real-time:
 
