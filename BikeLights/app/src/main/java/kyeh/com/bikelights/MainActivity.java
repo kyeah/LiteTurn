@@ -6,7 +6,6 @@ import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -14,21 +13,13 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.thalmic.myo.Hub;
 
-import java.util.ArrayList;
-
 public class MainActivity extends Activity implements GestureDetector.OnGestureListener,
-        SparkClient.TurnEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, MyoDeviceListener.OnMyoStatusChangedListener {
+        SparkClient.TurnEventListener, MyoDeviceListener.OnMyoStatusChangedListener, BearingsTracker.OnLocationChangedListener {
 
     private static final String TAG = "MainActivity";
     private static String navItems[] = {"Spark Controller", "Location Tracker"};
@@ -39,30 +30,25 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
     private View mDrawerView;
     private ListView mDrawerList;
 
-    private GoogleApiClient mGoogleApiClient;
-    private LocationRequest mLocationRequest;
-
+    // Modules
     private GestureDetector gestureDetector;
+    private BearingsTracker bearingsTracker;
 
+    // Views
     private SparkLightsFragment sparkLightsFragment;
     private TrackerFragment trackerFragment;
 
-    private LocationListener locationListener;
 
     @Override
     protected void onStart() {
         super.onStart();
-
-        // Connect the Google API Client.
-        if (GooglePlayServicesUtil.isGooglePlayServicesAvailable(this) == ConnectionResult.SUCCESS) {
-            mGoogleApiClient.connect();
-        }
     }
 
     @Override
     protected void onStop() {
-        // Disconnecting the client invalidates it.
-        mGoogleApiClient.disconnect();
+        if (bearingsTracker != null) {
+            bearingsTracker.stop();
+        }
         super.onStop();
     }
 
@@ -95,81 +81,16 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
         getActionBar().setDisplayHomeAsUpEnabled(true);
         getActionBar().setHomeButtonEnabled(true);
 
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(LocationServices.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
+        SparkClient.registerTurnEventListener(this);
+        bearingsTracker = new BearingsTracker(this, this);
 
         if (savedInstanceState == null) {
             sparkLightsFragment = new SparkLightsFragment();
             trackerFragment = new TrackerFragment();
-            trackerFragment.setGoogleApiClient(mGoogleApiClient);
+            trackerFragment.setGoogleApiClient(bearingsTracker.getGoogleApiClient());
         }
 
-        SparkClient.registerTurnEventListener(this);
-
         MapsInitializer.initialize(getApplicationContext());
-        locationListener = new LocationListener() {
-
-            private static final int bearingsWindow = 5;  // Keep last 10 bearings
-            private static final float bearingsTolerance = 15;  // 30-degree turn tolerance on each side
-
-            ArrayList<Float> lastBearings = new ArrayList<Float>();
-            private int count = 0;
-            private int ucount = 0;
-
-            @Override
-            public void onLocationChanged(Location location) {
-                if (trackerFragment != null) {
-                    trackerFragment.addTrackPoint(new LatLng(location.getLatitude(), location.getLongitude()));
-                }
-
-                if (location.hasBearing()) {
-                    Float bearing = location.getBearing();
-
-                    if (gestureDetector != null) {
-                        gestureDetector.setBearing(bearing);
-
-                        for (int i = 0; i < lastBearings.size(); i++) {
-                            float absDiff = Math.abs(lastBearings.get(i) - bearing);
-                            if (absDiff > 180) {
-                                absDiff = 360 - absDiff;
-                            }
-
-                            if (Math.abs(90 - absDiff) < bearingsTolerance) {
-                                if (SparkClient.turning != Turning.TURN_OFF) {
-                                    SparkClient.turnOff(MainActivity.this);
-                                }
-                                Log.i(TAG, "Detected 90-degreeish turn: " + absDiff);
-                                trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN), getString(R.string.turn_end_90));
-                                lastBearings.clear();  // Got our turn; only keep that new bearing
-                                count++;
-                                break;
-                            } else if (Math.abs(180 - absDiff) < bearingsTolerance) {
-                                if (SparkClient.turning != Turning.TURN_OFF) {
-                                    SparkClient.turnOff(MainActivity.this);
-                                }
-                                Log.i(TAG, "Detected U-turn: " + absDiff);
-                                trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED), getString(R.string.turn_end_u));
-                                lastBearings.clear();
-                                ucount++;
-                                break;
-                            }
-                        }
-                    }
-
-                    lastBearings.add(bearing);
-                    if (lastBearings.size() > bearingsWindow) {
-                        lastBearings.remove(0);
-                    }
-
-                    Log.i(TAG, Float.toString(location.getBearing()));
-                    Log.i(TAG, lastBearings.toString());
-                    sparkLightsFragment.setBearingText("Got Bearing: " + bearing + " with total turns: " + count + ", u-turns: " + ucount + " and history " + lastBearings.toString());
-                }
-            }
-        };
 
         selectNavItem(0);
     }
@@ -194,7 +115,6 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
         if (mDrawerToggle.onOptionsItemSelected(item)) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -247,29 +167,6 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
     }
 
     @Override
-    public void onConnected(Bundle bundle) {
-        // Request updates with GPS accuracy at a 1s update rate and 10m position change
-        // Typical city blocks are about 100m long, for reference.
-        // Need to check the units of these arguments.
-        // 25 10f
-        mLocationRequest = LocationRequest.create();
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        mLocationRequest.setInterval(1000);
-        mLocationRequest.setSmallestDisplacement(10);
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, locationListener);
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-        Log.e(TAG, "Connection Suspended - " + i);
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.e(TAG, "Connection Failed: " + connectionResult);
-    }
-
-    @Override
     public void onGesture(int gestureStatus) {
         switch (gestureStatus) {
             case Turning.TURN_LEFT:  sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_left));
@@ -313,6 +210,29 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
         gestureDetector = new NativeSensorListener(this);
         if (!gestureDetector.isActivated()) {
             gestureDetector = null;
+        }
+    }
+
+    @Override
+    public void onLocationChanged(Location location, int status) {
+        if (trackerFragment != null) {
+            trackerFragment.addTrackPoint(new LatLng(location.getLatitude(), location.getLongitude()));
+        }
+
+        if (gestureDetector != null) {
+            gestureDetector.setBearing(location.getBearing());
+        }
+
+        sparkLightsFragment.setBearingText("Bearing: " + location.getBearing());
+
+        if (status == TURN_COMPLETE) {
+            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED), getString(R.string.turn_end_90));
+        } else if (status == U_TURN_COMPLETE) {
+            trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED), getString(R.string.turn_end_u));
+        }
+
+        if (status != NO_TURN && SparkClient.turning != Turning.TURN_OFF) {
+            SparkClient.turnOff(this);
         }
     }
 }
