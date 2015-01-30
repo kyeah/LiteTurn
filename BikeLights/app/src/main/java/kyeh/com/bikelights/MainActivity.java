@@ -2,17 +2,10 @@ package kyeh.com.bikelights;
 
 import android.app.Activity;
 import android.app.Fragment;
-import android.content.Context;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
-import android.util.FloatMath;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -30,52 +23,37 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.WebSocket;
 import com.thalmic.myo.Hub;
-import com.thalmic.myo.Quaternion;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 
-public class MainActivity extends Activity implements SensorEventListener, TurnEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MainActivity extends Activity implements GestureDetector.OnGestureListener,
+        SparkClient.TurnEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, MyoDeviceListener.OnMyoStatusChangedListener {
 
-    private static final int accelWindow = 100;
-
-    private final String TAG = "MainActivity";
+    private static final String TAG = "MainActivity";
     private static String navItems[] = {"Spark Controller", "Location Tracker"};
 
+    // Navigation Drawer State
     private ActionBarDrawerToggle mDrawerToggle;
     private DrawerLayout mDrawerLayout;
     private View mDrawerView;
     private ListView mDrawerList;
 
-    private SensorManager mSensorManager;
-    private Sensor mAccelerometer;
-    private Sensor mRotationVector;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
 
-    private MyoDeviceListener myoDeviceListener;
+    private GestureDetector gestureDetector;
 
-    private ChartFragment chartFragment;
     private SparkLightsFragment sparkLightsFragment;
     private TrackerFragment trackerFragment;
 
-    private ArrayList<AccelPoint> accelData = new ArrayList<AccelPoint>();
-    private AccelPoint lastAvgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
-    private AccelPoint avgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
-
-    private WebSocket webSocket;
     private LocationListener locationListener;
 
     @Override
     protected void onStart() {
         super.onStart();
-        // Connect the client.
+
+        // Connect the Google API Client.
         if (GooglePlayServicesUtil.isGooglePlayServicesAvailable(this) == ConnectionResult.SUCCESS) {
             mGoogleApiClient.connect();
         }
@@ -97,11 +75,10 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         mDrawerView =   (View)                  findViewById(R.id.left_drawer);
         mDrawerList =   (ListView)              findViewById(R.id.drawer_list);
 
-        // Set the adapter for the list view
+        // Initialize the navigation drawer
         mDrawerList.setAdapter(new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1, navItems));
 
-        // Set the list's click listener
         mDrawerList.setOnItemClickListener(new ListView.OnItemClickListener() {
             public void onItemClick(AdapterView parent, View view, int position, long id) {
                 selectNavItem(position);
@@ -118,11 +95,6 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         getActionBar().setDisplayHomeAsUpEnabled(true);
         getActionBar().setHomeButtonEnabled(true);
 
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mAccelerometer  = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        registerSensors();
-
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
@@ -130,30 +102,12 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
                 .build();
 
         if (savedInstanceState == null) {
-            /*chartFragment = new ChartFragment();
-            getFragmentManager().beginTransaction()
-                    .add(R.id.container, chartFragment)
-                    .commit();*/
-
-            sparkLightsFragment = new SparkLightsFragment(this);
+            sparkLightsFragment = new SparkLightsFragment();
             trackerFragment = new TrackerFragment();
             trackerFragment.setGoogleApiClient(mGoogleApiClient);
         }
 
-        myoDeviceListener = new MyoDeviceListener(this);
         SparkClient.registerTurnEventListener(this);
-        myoDeviceListener.setSparkFragment(sparkLightsFragment);
-
-        Hub hub = Hub.getInstance();
-        if (!hub.init(this)) {
-            Log.e(TAG, "Could not initialize the Hub.");
-            //finish();
-            //return;
-        } else {
-            // This will connect to the first Myo that is found
-            Hub.getInstance().pairWithAnyMyo();
-            Hub.getInstance().addListener(myoDeviceListener);
-        }
 
         MapsInitializer.initialize(getApplicationContext());
         locationListener = new LocationListener() {
@@ -173,19 +127,18 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
 
                 if (location.hasBearing()) {
                     Float bearing = location.getBearing();
-                    if (myoDeviceListener != null) {
-                        myoDeviceListener.setBearing(bearing);
-                    }
 
-                    for (int i = 0; i < lastBearings.size(); i++) {
-                        float absDiff = Math.abs(lastBearings.get(i) - bearing);
-                        if (absDiff > 180) {
-                            absDiff = 360 - absDiff;
-                        }
+                    if (gestureDetector != null) {
+                        gestureDetector.setBearing(bearing);
 
-                        if (Math.abs(90 - absDiff) < bearingsTolerance) {
-                            if (myoDeviceListener != null) {
-                                if (SparkClient.turning != SparkClient.TURN_OFF) {
+                        for (int i = 0; i < lastBearings.size(); i++) {
+                            float absDiff = Math.abs(lastBearings.get(i) - bearing);
+                            if (absDiff > 180) {
+                                absDiff = 360 - absDiff;
+                            }
+
+                            if (Math.abs(90 - absDiff) < bearingsTolerance) {
+                                if (SparkClient.turning != Turning.TURN_OFF) {
                                     SparkClient.turnOff(MainActivity.this);
                                 }
                                 Log.i(TAG, "Detected 90-degreeish turn: " + absDiff);
@@ -193,10 +146,8 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
                                 lastBearings.clear();  // Got our turn; only keep that new bearing
                                 count++;
                                 break;
-                            }
-                        } else if (Math.abs(180 - absDiff) < bearingsTolerance) {
-                            if (myoDeviceListener != null) {
-                                if (SparkClient.turning != SparkClient.TURN_OFF) {
+                            } else if (Math.abs(180 - absDiff) < bearingsTolerance) {
+                                if (SparkClient.turning != Turning.TURN_OFF) {
                                     SparkClient.turnOff(MainActivity.this);
                                 }
                                 Log.i(TAG, "Detected U-turn: " + absDiff);
@@ -215,24 +166,10 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
 
                     Log.i(TAG, Float.toString(location.getBearing()));
                     Log.i(TAG, lastBearings.toString());
-                    sparkLightsFragment.setBearingText("FUCK THE ARM! Got Bearing: " + bearing + " with total turns: " + count + ", u-turns: " + ucount + " and history " + lastBearings.toString());
+                    sparkLightsFragment.setBearingText("Got Bearing: " + bearing + " with total turns: " + count + ", u-turns: " + ucount + " and history " + lastBearings.toString());
                 }
             }
         };
-
-        AsyncHttpClient.getDefaultInstance().websocket(getResources().getString(R.string.debugging_uri),
-                null, new AsyncHttpClient.WebSocketConnectCallback() {
-
-                    @Override
-                    public void onCompleted(Exception ex, WebSocket webSocket) {
-                        if (ex != null) {
-                            ex.printStackTrace();
-                            return;
-                        }
-
-                        MainActivity.this.webSocket = webSocket;
-                    }
-                });
 
         selectNavItem(0);
     }
@@ -264,19 +201,16 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putSerializable("acceldata", accelData);
     }
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        accelData = (ArrayList<AccelPoint>) savedInstanceState.getSerializable("accelData");
     }
 
     @Override
     protected void onDestroy() {
-        mSensorManager.unregisterListener(this);
-        Hub.getInstance().removeListener(myoDeviceListener);
+        gestureDetector.onEnd();
         Hub.getInstance().shutdown();
         super.onDestroy();
     }
@@ -284,10 +218,6 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     @Override
     protected void onPause() {
         super.onPause();
-        try {
-            saveData();
-        } catch (Exception e) {}
-
         if (trackerFragment != null) {
             trackerFragment.saveKML("spark_track");
         }
@@ -296,14 +226,7 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     @Override
     protected void onResume() {
         super.onResume();
-        registerSensors();
-        if (myoDeviceListener != null) {
-            try {
-                Hub.getInstance().addListener(myoDeviceListener);
-            } catch (Exception e) {
-                Log.d(TAG, "Already listening to Myo.");
-            }
-        }
+        gestureDetector.onResume();
     }
 
     @Override
@@ -313,108 +236,12 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
         return true;
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-        long time = System.currentTimeMillis();
-        Sensor sensor = sensorEvent.sensor;
-
-        float x = sensorEvent.values[0];
-        float y = sensorEvent.values[1];
-        float z = sensorEvent.values[2];
-
-        switch (sensor.getType()) {
-            case Sensor.TYPE_ACCELEROMETER:
-                accelData.add(new AccelPoint(time, x, y, z));
-/*                avgAccel.plus(new AccelPoint(time, x, y, z));
-                if (accelData.size() > 2*accelWindow) {
-                    AccelPoint val = accelData.remove(0);
-                    AccelPoint val2 = accelData.get(accelWindow -1);
-                    lastAvgAccel.minus(val.div(accelWindow));
-                    lastAvgAccel.plus(val2.div(accelWindow));
-                    avgAccel.minus(val2.div(accelWindow));
-                }
-
-                double turnTolerance = 0.01;
-                double dot = lastAvgAccel.getX()*avgAccel.getX() + lastAvgAccel.getY()*avgAccel.getY();// + lastAvgAccel.getZ()*avgAccel.getZ();
-                Log.i(TAG, Double.toString(dot));
-                if (dot < turnTolerance) {
-                    myoDeviceListener.turnEnded();
-                }
-*/
-                long t = accelData.get(0).getTimestamp();
-                if (chartFragment != null) {
-                    chartFragment.addAccelerometerValue(time - t, x, y, z);
-                }
-                break;
-            case Sensor.TYPE_ROTATION_VECTOR:
-                float w = FloatMath.sqrt(1 - x * x - y * y - z * z);
-
-                if (webSocket != null && webSocket.isOpen()) {
-                    float[] rot = new float[9];
-                    float[] rotMap = new float[9];
-                    SensorManager.getRotationMatrixFromVector(rot, sensorEvent.values);
-                    SensorManager.remapCoordinateSystem(rot, SensorManager.AXIS_X, SensorManager.AXIS_Z, rotMap);
-
-                    String s = Float.toString(rotMap[0]);
-                    for (int i = 1; i < rotMap.length; i++) {
-                        s += " " + rotMap[i];
-                    }
-                    webSocket.send(s);
-                }
-                if (myoDeviceListener != null) {
-                    myoDeviceListener.onOrientationData(null, 0, new Quaternion(x, y, z, w));
-                }
-                break;
-        }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
-
-    public void registerSensors() {
-        try {
-            mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-            mSensorManager.registerListener(this, mRotationVector, SensorManager.SENSOR_DELAY_NORMAL);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to register sensors", e);
-        }
-    }
-
-
-    /**
-     * Saves the accelerometer data to disk.
-     *
-     * @throws IOException
-     */
-    public void saveData() throws IOException {
-        File ext = Environment.getExternalStorageDirectory();
-        String filename = ext.getAbsolutePath() + "/" + R.string.accel_data_filename;
-
-        File archive = getFileStreamPath(filename);
-        if (archive.exists() || archive.createNewFile()) {
-            FileOutputStream fos = openFileOutput(filename, MODE_PRIVATE);
-            PrintStream ps = new PrintStream(fos);
-
-            for (AccelPoint pt : accelData) {
-                ps.println(pt);
-            }
-
-            ps.flush();
-            ps.close();
-            fos.close();
-        }
-
-        Log.e(TAG, "Saved accel data to " + filename);
-    }
-
     public void onTurn(int turnDir) {
         if (trackerFragment == null) return;
 
-        if (turnDir == SparkClient.TURN_LEFT) {
+        if (turnDir == Turning.TURN_LEFT) {
             trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE), getString(R.string.turning_left));
-        } else if (turnDir == SparkClient.TURN_RIGHT) {
+        } else if (turnDir == Turning.TURN_RIGHT) {
             trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE), getString(R.string.turning_right));
         }
     }
@@ -440,5 +267,52 @@ public class MainActivity extends Activity implements SensorEventListener, TurnE
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.e(TAG, "Connection Failed: " + connectionResult);
+    }
+
+    @Override
+    public void onGesture(int gestureStatus) {
+        switch (gestureStatus) {
+            case Turning.TURN_LEFT:  sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_left));
+            case Turning.TURN_RIGHT: sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_right));
+            case Turning.TURN_OFF:   sparkLightsFragment.setSparkText(getResources().getString(R.string.not_turning));
+        }
+    }
+
+    @Override
+    public void onMyoArmChanged(String text) {
+        sparkLightsFragment.setArmText(text);
+    }
+
+    @Override
+    public void onMyoConnectionChanged(String text) {
+        sparkLightsFragment.setStatusText(text);
+    }
+
+    public void toggleMyo() {
+        if (gestureDetector != null) {
+            boolean isMyo = gestureDetector instanceof MyoDeviceListener;
+            gestureDetector.onEnd();
+            gestureDetector = null;
+            if (isMyo) return;
+        }
+
+        gestureDetector = new MyoDeviceListener(this, this);
+        if (!gestureDetector.isActivated()) {
+            gestureDetector = null;
+        }
+    }
+
+    public void toggleNativeSensors() {
+        if (gestureDetector != null) {
+            boolean isNSL = gestureDetector instanceof NativeSensorListener;
+            gestureDetector.onEnd();
+            gestureDetector = null;
+            if (isNSL) return;
+        }
+
+        gestureDetector = new NativeSensorListener(this);
+        if (!gestureDetector.isActivated()) {
+            gestureDetector = null;
+        }
     }
 }

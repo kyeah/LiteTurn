@@ -2,7 +2,6 @@ package kyeh.com.bikelights;
 
 
 import android.app.Fragment;
-import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -28,25 +27,21 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
     private ColorPicker picker;
     private SaturationBar svBar;
 
-    private Context mContext;
-
-    public SparkLightsFragment(Context context) {
-        mContext = context;
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
+
         View rootView = inflater.inflate(R.layout.fragment_spark_lights, container, false);
         statusText = (TextView) rootView.findViewById(R.id.text_status);
         sparkText = (TextView) rootView.findViewById(R.id.spark_status);
         armText = (TextView) rootView.findViewById(R.id.arm_status);
         bearingText = (TextView) rootView.findViewById(R.id.bearing_status);
 
-        Button leftButton = (Button) rootView.findViewById(R.id.turn_left_button);
-        Button rightButton = (Button) rootView.findViewById(R.id.turn_right_button);
-        Button offButton = (Button) rootView.findViewById(R.id.off_button);
+        final Button nativeSensorButton = (Button) rootView.findViewById(R.id.native_sensor_button);
+        final Button myoButton =          (Button) rootView.findViewById(R.id.myo_button);
+        Button leftButton =         (Button) rootView.findViewById(R.id.turn_left_button);
+        Button rightButton =        (Button) rootView.findViewById(R.id.turn_right_button);
+        Button offButton =          (Button) rootView.findViewById(R.id.off_button);
 
         if (ROBOTO_LIGHT == null) {
             ROBOTO_LIGHT = Typeface.createFromAsset(getActivity().getAssets(), "Fonts/Roboto-Light.ttf");
@@ -58,9 +53,25 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
         armText.setTypeface(ROBOTO_LIGHT);
         bearingText.setTypeface(ROBOTO_LIGHT);
 
+        nativeSensorButton.setTypeface(ROBOTO_MEDIUM);
+        myoButton.setTypeface(ROBOTO_MEDIUM);
         leftButton.setTypeface(ROBOTO_MEDIUM);
         rightButton.setTypeface(ROBOTO_MEDIUM);
         offButton.setTypeface(ROBOTO_MEDIUM);
+
+        nativeSensorButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ((MainActivity) getActivity()).toggleNativeSensors();
+            }
+        });
+
+        myoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ((MainActivity) getActivity()).toggleMyo();
+            }
+        });
 
         leftButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -124,6 +135,6 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
         int r = Color.red(color);
         int g = Color.green(color);
         int b = Color.blue(color);
-        SparkClient.setColor(mContext, r, g, b);
+        SparkClient.setColor(getActivity(), r, g, b);
     }
 }

@@ -10,11 +10,7 @@ import android.os.Handler;
  */
 public class SparkClient {
 
-    // Turn Configuration
-    public static final int TURN_OFF = 0;
-    public static final int TURN_LEFT = 1;
-    public static final int TURN_RIGHT = 2;
-    public static int turning = TURN_OFF;
+    public static int turning = Turning.TURN_OFF;
 
     // Turn Signal Color Configuration
     private static final long COLOR_CHANGE_WAIT = 1000;
@@ -36,45 +32,43 @@ public class SparkClient {
     }
 
     public static void turnRight(final Context context) {
-        if (turning != TURN_RIGHT) {
-            turning = TURN_RIGHT;
+        if (turning != Turning.TURN_RIGHT) {
+            turning = Turning.TURN_RIGHT;
             Runnable turnRunnable = new Runnable() {
                 @Override
                 public void run() {
                     if (turnEventListener != null) {
-                        turnEventListener.onTurn(SparkClient.TURN_RIGHT);
+                        turnEventListener.onTurn(Turning.TURN_RIGHT);
                     }
                     makeRequest(context, "on", "RIGHT");
                 }
             };
             turnHandler.removeCallbacksAndMessages(null);
             turnHandler.postDelayed(turnRunnable, HOLD_DURATION);
-            //makeRequest(context, "on", "RIGHT");
         }
     }
 
     public static void turnLeft(final Context context) {
-        if (turning != TURN_LEFT) {
-            turning = TURN_LEFT;
+        if (turning != Turning.TURN_LEFT) {
+            turning = Turning.TURN_LEFT;
             Runnable turnRunnable = new Runnable() {
                 @Override
                 public void run() {
                     if (turnEventListener != null) {
-                        turnEventListener.onTurn(SparkClient.TURN_LEFT);
+                        turnEventListener.onTurn(Turning.TURN_LEFT);
                     }
                     makeRequest(context, "on", "LEFT");
                 }
             };
             turnHandler.removeCallbacksAndMessages(null);
             turnHandler.postDelayed(turnRunnable, HOLD_DURATION);
-            //makeRequest(context, "on", "RIGHT");
         }
     }
 
     public static void turnOff(final Context context) {
-        turning = TURN_OFF;
+        turning = Turning.TURN_OFF;
         if (turnEventListener != null) {
-            turnEventListener.onTurn(SparkClient.TURN_OFF);
+            turnEventListener.onTurn(Turning.TURN_OFF);
         }
         makeRequest(context, "off", "");
     }
@@ -102,6 +96,13 @@ public class SparkClient {
 
     public static void cancelPendingTurns() {
         turnHandler.removeCallbacksAndMessages(null);
-        turning = TURN_OFF;
+        turning = Turning.TURN_OFF;
+    }
+
+    /**
+     * Created by kyeh on 11/5/14.
+     */
+    public static interface TurnEventListener {
+        public void onTurn(int turnDir);
     }
 }

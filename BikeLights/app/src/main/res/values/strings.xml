@@ -20,5 +20,6 @@
     <string name="turn_end_90">End of 90-degree Turn</string>
     <string name="turn_end_u">End of U-Turn</string>
     <string name="app_dir">LiteTurn</string>
+    <string name="not_turning">Not Turning</string>
 
 </resources>

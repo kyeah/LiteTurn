@@ -6,6 +6,7 @@ import android.widget.Toast;
 
 import com.thalmic.myo.Arm;
 import com.thalmic.myo.DeviceListener;
+import com.thalmic.myo.Hub;
 import com.thalmic.myo.Myo;
 import com.thalmic.myo.Pose;
 import com.thalmic.myo.Quaternion;
@@ -15,73 +16,66 @@ import com.thalmic.myo.XDirection;
 /**
  * Created by kyeh on 10/18/14.
  */
-public class MyoDeviceListener implements DeviceListener {
+public class MyoDeviceListener extends GestureDetector implements DeviceListener {
 
     private final String TAG = "MyoDeviceListener";
 
-    private static final int TURN_YAW_WINDOW = 5;  // Within two divs away from desired yaw value
-    private static final int TURN_PITCH_CUTOFF = 34;  // >= Turn inwards, < Turn outwards
-    int roll_w, pitch_w, yaw_w, bearing_w;
-
-    private Context mContext;
-    private SparkLightsFragment sparkLightsFragment;
     private Arm mArm;
-    private boolean lefty = true;
+    private OnMyoStatusChangedListener statusChangedListener;
 
-    public MyoDeviceListener(Context context) {
+    public MyoDeviceListener(Context context, OnMyoStatusChangedListener listener) {
         mContext = context;
+        statusChangedListener = listener;
+
+        Hub hub = Hub.getInstance();
+        if (!hub.init(context)) {
+            Log.e(TAG, "Could not initialize the Hub.");
+            Toast.makeText(context, "Could not initialize Myo Hub", Toast.LENGTH_LONG).show();
+        } else {
+            // This will connect to the first Myo that is found
+            Hub.getInstance().pairWithAnyMyo();
+            Hub.getInstance().addListener(this);
+            activated = true;
+        }
     }
 
-    public void setSparkFragment(SparkLightsFragment fragment) { sparkLightsFragment = fragment; }
-
-    public void turnRight() {
-        SparkClient.turnRight(mContext);
+    public void onResume() {
+        try {
+            Hub.getInstance().addListener(this);
+        } catch (Exception e) {
+            Log.d(TAG, "Already listening to Myo.");
+        }
     }
 
-    public void turnLeft() {
-        SparkClient.turnLeft(mContext);
-    }
-
-    public void turnOff() {
-        SparkClient.turnOff(mContext);
+    public void onEnd() {
+        Hub.getInstance().removeListener(this);
     }
 
     @Override
     public void onPair(Myo myo, long l) {
-        Toast.makeText(mContext, "Myo Paired!", Toast.LENGTH_SHORT).show();
-        sparkLightsFragment.setStatusText("Myo Paired!");
-        Log.i(TAG, "Myo Paired!");
+        statusChangedListener.onMyoConnectionChanged("Myo Paired!");
     }
 
     @Override
     public void onConnect(Myo myo, long l) {
-        Toast.makeText(mContext, "Myo Connected!", Toast.LENGTH_SHORT).show();
-        sparkLightsFragment.setStatusText("Myo Connected!");
-        Log.i(TAG, "Myo Connected!");
+        statusChangedListener.onMyoConnectionChanged("Myo Connected!");
     }
 
     @Override
     public void onDisconnect(Myo myo, long l) {
-        Toast.makeText(mContext, "Myo Disconnected!", Toast.LENGTH_SHORT).show();
-        sparkLightsFragment.setStatusText("Myo Disconnected!");
+        statusChangedListener.onMyoConnectionChanged("Myo Disconnected!");
     }
 
     @Override
     public void onArmRecognized(Myo myo, long l, Arm arm, XDirection xDirection) {
-        Toast.makeText(mContext, "Myo Arm Recognized! - " + xDirection, Toast.LENGTH_SHORT).show();
-        sparkLightsFragment.setStatusText("Myo Arm Recognized! - " + xDirection);
-        Log.i(TAG, "Myo arm recognized");
         mArm = arm;
-        sparkLightsFragment.setArmText("ARM: " + (arm == Arm.LEFT ? "LEFT" : "RIGHT"));
+        statusChangedListener.onMyoArmChanged("ARM: " + (arm == Arm.LEFT ? "LEFT" : "RIGHT"));
     }
 
     @Override
     public void onArmLost(Myo myo, long l) {
-            Toast.makeText(mContext, "Myo Arm Lost!", Toast.LENGTH_SHORT).show();
-            sparkLightsFragment.setStatusText("Myo Arm Lost!");
-        Log.i(TAG, "Myo arm lost");
         mArm = Arm.UNKNOWN;
-        sparkLightsFragment.setArmText("ARM: UNKNOWN");
+        statusChangedListener.onMyoArmChanged("ARM: UNKNOWN");
     }
 
     @Override
@@ -127,51 +121,12 @@ public class MyoDeviceListener implements DeviceListener {
         }
         }*/
 
-        Toast.makeText(mContext, "Pose: " + pose, Toast.LENGTH_SHORT).show();
-        sparkLightsFragment.setStatusText("Myo Pose: " + pose);
-        Log.i(TAG, "Myo Pose: " + pose);
+        statusChangedListener.onMyoConnectionChanged("Myo Pose: " + pose);
     }
 
     @Override
     public void onOrientationData(Myo myo, long l, Quaternion quaternion) {
-
-        // Swap Y and Z axes
-        double yaw = Quaternion.yaw(quaternion);
-        double pitch = Quaternion.roll(quaternion);
-        double roll = Quaternion.pitch(quaternion);
-
-        // Convert the floating point angles in radians to a scale from 0 to 19.
-        roll_w = (int)((roll + (float)Math.PI)/(Math.PI * 2.0f) * 40);
-        pitch_w = (int)((pitch + (float)Math.PI/2.0f)/Math.PI * 40);
-        yaw_w = (int)((yaw + (float)Math.PI)/(Math.PI * 2.0f) * 40);
-
-        int outTurn = (lefty ? SparkClient.TURN_LEFT : SparkClient.TURN_RIGHT);
-        int inTurn = (lefty ? SparkClient.TURN_RIGHT : SparkClient.TURN_LEFT);
-
-        if ((/*isArmOutStraight() ||*/ isArmDown()) && pitch_w < TURN_PITCH_CUTOFF) {
-            if (SparkClient.turning != outTurn) {
-                if (lefty) {
-                    turnLeft();
-                } else {
-                    turnRight();
-                }
-                sparkLightsFragment.setSparkText("Turning Out");
-            }
-        } else if (isArmUp() && pitch_w >= TURN_PITCH_CUTOFF) {
-            if (SparkClient.turning != inTurn) {
-                if (lefty) {
-                    turnRight();
-                } else {
-                    turnLeft();
-                }
-                sparkLightsFragment.setSparkText("Turning In");
-            }
-        } else {
-                SparkClient.cancelPendingTurns();
-                sparkLightsFragment.setSparkText("Not Turning");
-        }
-
-        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w + "; bearing=" + bearing_w);
+        super.onOrientationData(quaternion);
     }
 
 
@@ -191,28 +146,11 @@ public class MyoDeviceListener implements DeviceListener {
     @Override
     public void onRssi(Myo myo, long l, int i) {
         Toast.makeText(mContext, "Myo Rssi Detected", Toast.LENGTH_SHORT).show();
-        sparkLightsFragment.setStatusText("Myo Rssi Detected!");
+        statusChangedListener.onMyoConnectionChanged("Myo Rssi Detected!");
     }
 
-    public void setBearing(Float bearing) {
-        this.bearing_w = (int) ((bearing / 360) * 40);
-    }
-
-    public boolean isArmOutStraight() {
-        int adjustedYawDiff = Math.abs(((50 - bearing_w) % 40) - yaw_w);
-        if (lefty) {
-            adjustedYawDiff = (adjustedYawDiff + 20) % 40;
-        }
-        return adjustedYawDiff <= TURN_YAW_WINDOW || 38 - adjustedYawDiff <= TURN_YAW_WINDOW - 2;
-    }
-
-    public boolean isArmUp() {
-        int adjustedYawDiff = Math.abs(((60 - bearing_w) % 40) - yaw_w);
-        return adjustedYawDiff <= TURN_YAW_WINDOW || 38 - adjustedYawDiff <= TURN_YAW_WINDOW - 2;
-    }
-
-    public boolean isArmDown() {
-        int adjustedYawDiff = (bearing_w + yaw_w) % 40;
-        return adjustedYawDiff <= TURN_YAW_WINDOW || 38 - adjustedYawDiff <= TURN_YAW_WINDOW - 2;
+    public interface OnMyoStatusChangedListener {
+        public void onMyoArmChanged(String text);
+        public void onMyoConnectionChanged(String text);
     }
 }
