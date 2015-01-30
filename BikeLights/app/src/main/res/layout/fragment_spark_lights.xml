@@ -5,7 +5,7 @@
     android:orientation="horizontal"
     android:gravity="center|top"
     android:background="#EEEEEE"
-    tools:context="kyeh.com.bikelights.SparkLightsFragment">
+    tools:context="kyeh.com.bikelights.spark.SparkLightsFragment">
 
     <LinearLayout
         android:layout_width="match_parent"

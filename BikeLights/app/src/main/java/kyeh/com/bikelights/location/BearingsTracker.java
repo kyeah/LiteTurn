@@ -1,4 +1,4 @@
-package kyeh.com.bikelights;
+package kyeh.com.bikelights.location;
 
 import android.content.Context;
 import android.location.Location;

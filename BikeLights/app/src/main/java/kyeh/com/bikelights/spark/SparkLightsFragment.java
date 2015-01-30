@@ -1,4 +1,4 @@
-package kyeh.com.bikelights;
+package kyeh.com.bikelights.spark;
 
 
 import android.app.Fragment;
@@ -13,6 +13,9 @@ import android.widget.TextView;
 
 import com.larswerkman.holocolorpicker.ColorPicker;
 import com.larswerkman.holocolorpicker.SaturationBar;
+
+import kyeh.com.bikelights.MainActivity;
+import kyeh.com.bikelights.R;
 
 
 /**

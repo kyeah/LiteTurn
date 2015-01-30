@@ -1,4 +1,4 @@
-package kyeh.com.bikelights;
+package kyeh.com.bikelights.gestures;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -16,6 +16,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+
+import kyeh.com.bikelights.R;
 
 /**
  * Created by kyeh on 1/29/15.

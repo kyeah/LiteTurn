@@ -1,7 +1,9 @@
-package kyeh.com.bikelights;
+package kyeh.com.bikelights.spark;
 
 import android.content.Context;
 import android.os.Handler;
+
+import kyeh.com.bikelights.Turn;
 
 /**
  * This class is a static instantiation that interfaces with the Spark Core and drives the turn light LEDs.
@@ -10,7 +12,7 @@ import android.os.Handler;
  */
 public class SparkClient {
 
-    public static int turning = Turning.TURN_OFF;
+    public static int turning = Turn.TURN_OFF;
 
     // Turn Signal Color Configuration
     private static final long COLOR_CHANGE_WAIT = 1000;
@@ -32,13 +34,13 @@ public class SparkClient {
     }
 
     public static void turnRight(final Context context) {
-        if (turning != Turning.TURN_RIGHT) {
-            turning = Turning.TURN_RIGHT;
+        if (turning != Turn.TURN_RIGHT) {
+            turning = Turn.TURN_RIGHT;
             Runnable turnRunnable = new Runnable() {
                 @Override
                 public void run() {
                     if (turnEventListener != null) {
-                        turnEventListener.onTurn(Turning.TURN_RIGHT);
+                        turnEventListener.onTurn(Turn.TURN_RIGHT);
                     }
                     makeRequest(context, "on", "RIGHT");
                 }
@@ -49,13 +51,13 @@ public class SparkClient {
     }
 
     public static void turnLeft(final Context context) {
-        if (turning != Turning.TURN_LEFT) {
-            turning = Turning.TURN_LEFT;
+        if (turning != Turn.TURN_LEFT) {
+            turning = Turn.TURN_LEFT;
             Runnable turnRunnable = new Runnable() {
                 @Override
                 public void run() {
                     if (turnEventListener != null) {
-                        turnEventListener.onTurn(Turning.TURN_LEFT);
+                        turnEventListener.onTurn(Turn.TURN_LEFT);
                     }
                     makeRequest(context, "on", "LEFT");
                 }
@@ -66,9 +68,9 @@ public class SparkClient {
     }
 
     public static void turnOff(final Context context) {
-        turning = Turning.TURN_OFF;
+        turning = Turn.TURN_OFF;
         if (turnEventListener != null) {
-            turnEventListener.onTurn(Turning.TURN_OFF);
+            turnEventListener.onTurn(Turn.TURN_OFF);
         }
         makeRequest(context, "off", "");
     }
@@ -96,7 +98,7 @@ public class SparkClient {
 
     public static void cancelPendingTurns() {
         turnHandler.removeCallbacksAndMessages(null);
-        turning = Turning.TURN_OFF;
+        turning = Turn.TURN_OFF;
     }
 
     /**

@@ -1,4 +1,4 @@
-package kyeh.com.bikelights;
+package kyeh.com.bikelights.spark;
 
 import android.content.Context;
 import android.os.AsyncTask;
@@ -8,6 +8,8 @@ import java.io.DataOutputStream;
 import java.net.URL;
 
 import javax.net.ssl.HttpsURLConnection;
+
+import kyeh.com.bikelights.R;
 
 /**
  * Created by kyeh on 10/18/14.

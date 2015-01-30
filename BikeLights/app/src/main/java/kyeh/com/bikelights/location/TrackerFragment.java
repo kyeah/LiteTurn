@@ -1,4 +1,4 @@
-package kyeh.com.bikelights;
+package kyeh.com.bikelights.location;
 
 
 import android.app.Fragment;
@@ -27,6 +27,8 @@ import java.io.FileWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+
+import kyeh.com.bikelights.R;
 
 
 /**

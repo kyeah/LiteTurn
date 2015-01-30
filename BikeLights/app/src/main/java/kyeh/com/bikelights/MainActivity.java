@@ -18,6 +18,14 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.thalmic.myo.Hub;
 
+import kyeh.com.bikelights.gestures.GestureDetector;
+import kyeh.com.bikelights.gestures.MyoDeviceListener;
+import kyeh.com.bikelights.gestures.NativeSensorListener;
+import kyeh.com.bikelights.location.BearingsTracker;
+import kyeh.com.bikelights.location.TrackerFragment;
+import kyeh.com.bikelights.spark.SparkClient;
+import kyeh.com.bikelights.spark.SparkLightsFragment;
+
 public class MainActivity extends Activity implements GestureDetector.OnGestureListener,
         SparkClient.TurnEventListener, MyoDeviceListener.OnMyoStatusChangedListener, BearingsTracker.OnLocationChangedListener {
 
@@ -159,9 +167,9 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
     public void onTurn(int turnDir) {
         if (trackerFragment == null) return;
 
-        if (turnDir == Turning.TURN_LEFT) {
+        if (turnDir == Turn.TURN_LEFT) {
             trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE), getString(R.string.turning_left));
-        } else if (turnDir == Turning.TURN_RIGHT) {
+        } else if (turnDir == Turn.TURN_RIGHT) {
             trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE), getString(R.string.turning_right));
         }
     }
@@ -169,9 +177,9 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
     @Override
     public void onGesture(int gestureStatus) {
         switch (gestureStatus) {
-            case Turning.TURN_LEFT:  sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_left));
-            case Turning.TURN_RIGHT: sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_right));
-            case Turning.TURN_OFF:   sparkLightsFragment.setSparkText(getResources().getString(R.string.not_turning));
+            case Turn.TURN_LEFT:  sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_left));
+            case Turn.TURN_RIGHT: sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_right));
+            case Turn.TURN_OFF:   sparkLightsFragment.setSparkText(getResources().getString(R.string.not_turning));
         }
     }
 
@@ -231,7 +239,7 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
             trackerFragment.marker(null, BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED), getString(R.string.turn_end_u));
         }
 
-        if (status != NO_TURN && SparkClient.turning != Turning.TURN_OFF) {
+        if (status != NO_TURN && SparkClient.turning != Turn.TURN_OFF) {
             SparkClient.turnOff(this);
         }
     }

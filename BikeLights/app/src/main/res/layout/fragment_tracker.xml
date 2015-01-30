@@ -2,7 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="kyeh.com.bikelights.TrackerFragment">
+    tools:context="kyeh.com.bikelights.location.TrackerFragment">
 
     <!-- TODO: Update blank fragment layout -->
     <fragment

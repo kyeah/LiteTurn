@@ -1,9 +1,12 @@
-package kyeh.com.bikelights;
+package kyeh.com.bikelights.gestures;
 
 import android.content.Context;
 import android.util.Log;
 
 import com.thalmic.myo.Quaternion;
+
+import kyeh.com.bikelights.Turn;
+import kyeh.com.bikelights.spark.SparkClient;
 
 /**
  * Created by kyeh on 1/29/15.
@@ -58,8 +61,8 @@ public class GestureDetector {
         pitch_w = (int) ((pitch + (float) Math.PI / 2.0f) / Math.PI * 40);
         yaw_w = (int) ((yaw + (float) Math.PI) / (Math.PI * 2.0f) * 40);
 
-        int outTurn = (lefty ? Turning.TURN_LEFT : Turning.TURN_RIGHT);
-        int inTurn = (lefty ? Turning.TURN_RIGHT : Turning.TURN_LEFT);
+        int outTurn = (lefty ? Turn.TURN_LEFT : Turn.TURN_RIGHT);
+        int inTurn = (lefty ? Turn.TURN_RIGHT : Turn.TURN_LEFT);
 
         if ((/*isArmOutStraight() ||*/ isArmDown()) && pitch_w < TURN_PITCH_CUTOFF) {
             if (SparkClient.turning != outTurn) {
@@ -81,7 +84,7 @@ public class GestureDetector {
             }
         } else {
             SparkClient.cancelPendingTurns();
-            onGestureListener.onGesture(Turning.TURN_OFF);
+            onGestureListener.onGesture(Turn.TURN_OFF);
         }
 
         Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w + "; bearing=" + bearing_w);

@@ -1,4 +1,4 @@
-package kyeh.com.bikelights;
+package kyeh.com.bikelights.gestures;
 
 import java.io.Serializable;
 
