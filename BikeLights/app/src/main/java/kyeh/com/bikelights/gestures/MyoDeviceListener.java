@@ -24,7 +24,6 @@ public class MyoDeviceListener extends GestureDetector implements DeviceListener
     private OnMyoStatusChangedListener statusChangedListener;
 
     public MyoDeviceListener(Context context, OnMyoStatusChangedListener listener) {
-        mContext = context;
         statusChangedListener = listener;
 
         Hub hub = Hub.getInstance();
@@ -145,7 +144,6 @@ public class MyoDeviceListener extends GestureDetector implements DeviceListener
 
     @Override
     public void onRssi(Myo myo, long l, int i) {
-        Toast.makeText(mContext, "Myo Rssi Detected", Toast.LENGTH_SHORT).show();
         statusChangedListener.onMyoConnectionChanged("Myo Rssi Detected!");
     }
 

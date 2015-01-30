@@ -1,12 +1,10 @@
 package kyeh.com.bikelights.gestures;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.thalmic.myo.Quaternion;
 
 import kyeh.com.bikelights.Turn;
-import kyeh.com.bikelights.spark.SparkClient;
 
 /**
  * Created by kyeh on 1/29/15.
@@ -19,7 +17,6 @@ public class GestureDetector {
     private static final int TURN_PITCH_CUTOFF = 34;  // >= Turn inwards, < Turn outwards
     private int roll_w, pitch_w, yaw_w, bearing_w;
 
-    Context mContext;
     OnGestureListener onGestureListener;
     boolean lefty = true;
     boolean activated = false;
@@ -65,25 +62,10 @@ public class GestureDetector {
         int inTurn = (lefty ? Turn.TURN_RIGHT : Turn.TURN_LEFT);
 
         if ((/*isArmOutStraight() ||*/ isArmDown()) && pitch_w < TURN_PITCH_CUTOFF) {
-            if (SparkClient.turning != outTurn) {
-                if (lefty) {
-                    SparkClient.turnLeft(mContext);
-                } else {
-                    SparkClient.turnRight(mContext);
-                }
-                onGestureListener.onGesture(outTurn);
-            }
+            onGestureListener.onGesture(outTurn);
         } else if (isArmUp() && pitch_w >= TURN_PITCH_CUTOFF) {
-            if (SparkClient.turning != inTurn) {
-                if (lefty) {
-                    SparkClient.turnRight(mContext);
-                } else {
-                    SparkClient.turnLeft(mContext);
-                }
-                onGestureListener.onGesture(inTurn);
-            }
+            onGestureListener.onGesture(inTurn);
         } else {
-            SparkClient.cancelPendingTurns();
             onGestureListener.onGesture(Turn.TURN_OFF);
         }
 

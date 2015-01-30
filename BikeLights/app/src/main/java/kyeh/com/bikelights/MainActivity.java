@@ -177,9 +177,21 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
     @Override
     public void onGesture(int gestureStatus) {
         switch (gestureStatus) {
-            case Turn.TURN_LEFT:  sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_left));
-            case Turn.TURN_RIGHT: sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_right));
-            case Turn.TURN_OFF:   sparkLightsFragment.setSparkText(getResources().getString(R.string.not_turning));
+            case Turn.TURN_LEFT:
+                sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_left));
+                if (SparkClient.turning != Turn.TURN_LEFT) {
+                    SparkClient.turnLeft(this);
+                }
+                break;
+            case Turn.TURN_RIGHT:
+                sparkLightsFragment.setSparkText(getResources().getString(R.string.turning_right));
+                if (SparkClient.turning != Turn.TURN_RIGHT) {
+                    SparkClient.turnRight(this);
+                }
+                break;
+            case Turn.TURN_OFF:
+                sparkLightsFragment.setSparkText(getResources().getString(R.string.not_turning));
+                SparkClient.cancelPendingTurns();
         }
     }
 

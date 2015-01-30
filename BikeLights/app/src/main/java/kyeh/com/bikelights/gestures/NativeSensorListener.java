@@ -31,6 +31,8 @@ public class NativeSensorListener extends GestureDetector implements SensorEvent
     private AccelPoint lastAvgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
     private AccelPoint avgAccel = new AccelPoint(System.currentTimeMillis(), 0, 0, 0);
 
+    private Context mContext;
+
     // Sensor States
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
