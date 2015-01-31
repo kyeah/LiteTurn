@@ -6,6 +6,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -138,8 +139,14 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
 
     @Override
     protected void onDestroy() {
-        gestureDetector.onEnd();
-        Hub.getInstance().shutdown();
+        if (gestureDetector != null) {
+            gestureDetector.onEnd();
+        }
+        try {
+            Hub.getInstance().shutdown();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to shutdown Myo Hub", e);
+        }
         super.onDestroy();
     }
 
@@ -154,7 +161,9 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
     @Override
     protected void onResume() {
         super.onResume();
-        gestureDetector.onResume();
+        if (gestureDetector != null) {
+            gestureDetector.onResume();
+        }
     }
 
     @Override
@@ -214,11 +223,11 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
             if (isMyo) return;
         }
 
-        gestureDetector = new MyoDeviceListener(this, this);
+        gestureDetector = new MyoDeviceListener(this, this, this);
         if (!gestureDetector.isActivated()) {
             gestureDetector = null;
         } else {
-            sparkLightsFragment.activateNativeText();
+            sparkLightsFragment.activateMyoText();
         }
     }
 
@@ -231,11 +240,11 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
             if (isNSL) return;
         }
 
-        gestureDetector = new NativeSensorListener(this);
+        gestureDetector = new NativeSensorListener(this, this);
         if (!gestureDetector.isActivated()) {
             gestureDetector = null;
         } else {
-            sparkLightsFragment.activateMyoText();
+            sparkLightsFragment.activateNativeText();
         }
     }
 

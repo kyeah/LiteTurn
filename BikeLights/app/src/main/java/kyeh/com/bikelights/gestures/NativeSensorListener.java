@@ -38,7 +38,8 @@ public class NativeSensorListener extends GestureDetector implements SensorEvent
     private Sensor mAccelerometer;
     private Sensor mRotationVector;
 
-    public NativeSensorListener(Context context) {
+    public NativeSensorListener(Context context, OnGestureListener onGestureListener) {
+        super(onGestureListener);
         mContext = context;
 
         // Initialize the native sensors

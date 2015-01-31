@@ -23,7 +23,8 @@ public class MyoDeviceListener extends GestureDetector implements DeviceListener
     private Arm mArm;
     private OnMyoStatusChangedListener statusChangedListener;
 
-    public MyoDeviceListener(Context context, OnMyoStatusChangedListener listener) {
+    public MyoDeviceListener(Context context, OnGestureListener onGestureListener, OnMyoStatusChangedListener listener) {
+        super(onGestureListener);
         statusChangedListener = listener;
 
         Hub hub = Hub.getInstance();

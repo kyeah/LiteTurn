@@ -21,6 +21,10 @@ public class GestureDetector {
     boolean lefty = true;
     boolean activated = false;
 
+    public GestureDetector(OnGestureListener onGestureListener) {
+        this.onGestureListener = onGestureListener;
+    }
+
     public void onResume() {}
     public void onEnd() {}
 
