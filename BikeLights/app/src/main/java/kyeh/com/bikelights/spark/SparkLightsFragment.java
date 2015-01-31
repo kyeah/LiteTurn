@@ -28,9 +28,6 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
     private TextView statusText, sparkText, armText, bearingText;
     private Button nativeSensorButton, myoButton;
 
-    private ColorPicker picker;
-    private SaturationBar svBar;
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -101,8 +98,8 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
             }
         });
 
-        picker = (ColorPicker) rootView.findViewById(R.id.picker);
-        svBar = (SaturationBar) rootView.findViewById(R.id.svbar);
+        ColorPicker picker = (ColorPicker) rootView.findViewById(R.id.picker);
+        SaturationBar svBar = (SaturationBar) rootView.findViewById(R.id.svbar);
         picker.addSaturationBar(svBar);
         picker.setShowOldCenterColor(false);
         picker.setColor(16711680);
