@@ -26,6 +26,7 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
 
     private Typeface ROBOTO_LIGHT, ROBOTO_MEDIUM;
     private TextView statusText, sparkText, armText, bearingText;
+    private Button nativeSensorButton, myoButton;
 
     private ColorPicker picker;
     private SaturationBar svBar;
@@ -42,9 +43,12 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
 
         final Button nativeSensorButton = (Button) rootView.findViewById(R.id.native_sensor_button);
         final Button myoButton =          (Button) rootView.findViewById(R.id.myo_button);
-        Button leftButton =         (Button) rootView.findViewById(R.id.turn_left_button);
-        Button rightButton =        (Button) rootView.findViewById(R.id.turn_right_button);
-        Button offButton =          (Button) rootView.findViewById(R.id.off_button);
+        Button leftButton =               (Button) rootView.findViewById(R.id.turn_left_button);
+        Button rightButton =              (Button) rootView.findViewById(R.id.turn_right_button);
+        Button offButton =                (Button) rootView.findViewById(R.id.off_button);
+
+        this.nativeSensorButton = nativeSensorButton;
+        this.myoButton = myoButton;
 
         if (ROBOTO_LIGHT == null) {
             ROBOTO_LIGHT = Typeface.createFromAsset(getActivity().getAssets(), "Fonts/Roboto-Light.ttf");
@@ -130,6 +134,19 @@ public class SparkLightsFragment extends Fragment implements ColorPicker.OnColor
         if (bearingText != null) {
             bearingText.setText(s);
         }
+    }
+
+    public void activateMyoText() {
+        myoButton.setText("Activated");
+    }
+
+    public void activateNativeText() {
+        nativeSensorButton.setText("Activated");
+    }
+
+    public void resetActivationText() {
+        myoButton.setText("Myo");
+        nativeSensorButton.setText("Native");
     }
 
     @Override

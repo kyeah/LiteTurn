@@ -206,6 +206,7 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
     }
 
     public void toggleMyo() {
+        sparkLightsFragment.resetActivationText();
         if (gestureDetector != null) {
             boolean isMyo = gestureDetector instanceof MyoDeviceListener;
             gestureDetector.onEnd();
@@ -216,10 +217,13 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
         gestureDetector = new MyoDeviceListener(this, this);
         if (!gestureDetector.isActivated()) {
             gestureDetector = null;
+        } else {
+            sparkLightsFragment.activateNativeText();
         }
     }
 
     public void toggleNativeSensors() {
+        sparkLightsFragment.resetActivationText();
         if (gestureDetector != null) {
             boolean isNSL = gestureDetector instanceof NativeSensorListener;
             gestureDetector.onEnd();
@@ -230,6 +234,8 @@ public class MainActivity extends Activity implements GestureDetector.OnGestureL
         gestureDetector = new NativeSensorListener(this);
         if (!gestureDetector.isActivated()) {
             gestureDetector = null;
+        } else {
+            sparkLightsFragment.activateMyoText();
         }
     }
 
