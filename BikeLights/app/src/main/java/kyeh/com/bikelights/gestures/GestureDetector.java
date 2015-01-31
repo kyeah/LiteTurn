@@ -1,7 +1,5 @@
 package kyeh.com.bikelights.gestures;
 
-import android.util.Log;
-
 import com.thalmic.myo.Quaternion;
 
 import kyeh.com.bikelights.Turn;
@@ -72,9 +70,6 @@ public class GestureDetector {
         } else {
             onGestureListener.onGesture(Turn.TURN_OFF);
         }
-
-        Log.i(TAG, "yaw=" + yaw_w + "; pitch=" + pitch_w + "; roll=" + roll_w + "; bearing=" + bearing_w);
-
     }
 
     public interface OnGestureListener {
